@@ -1,0 +1,30 @@
+{
+  "lessons": [
+    {
+      "id": 1,
+      "title": "Introduction to Python",
+      "description": "Learn the basics of Python programming.",
+      "content": "Python is a high-level, interpreted programming language. It's great for beginners. Here's how to print something:\n\n```python\nprint('Hello, world!')\n```",
+      "quiz": [
+        {
+          "question": "What function do you use to display text in Python?",
+          "options": ["echo()", "print()", "say()", "display()"],
+          "answer": "print()"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Variables and Data Types",
+      "description": "Understand variables and the different data types in Python.",
+      "content": "Variables are used to store data. Python has several data types, including integers, floats, strings, and booleans.\n\nExample:\n```python\nx = 5\nname = 'Alice'\n```\n",
+      "quiz": [
+        {
+          "question": "Which of these is a string?",
+          "options": ["42", "'hello'", "3.14", "True"],
+          "answer": "'hello'"
+        }
+      ]
+    }
+  ]
+}
