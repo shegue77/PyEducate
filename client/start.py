@@ -1,3 +1,5 @@
+# FIRST VERSION, CLI ONLY
+
 import json
 
 with open('lessons.json', 'r') as f:
@@ -22,6 +24,9 @@ for lesson in data['lessons']:
         print()
 
 exit(0)
+
+# IGNORE
+
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QLineEdit, QVBoxLayout, QPushButton
 from sys import argv as sys_argv, exit as sys_exit
