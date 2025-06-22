@@ -18,7 +18,7 @@
       "title": "Variables and Data Types",
       "image": "False",
       "description": "Understand variables and the different data types in Python.",
-      "content": "Variables are used to store data. Python has several data types, including integers, floats, strings, and jhgfh.\n\nExample:\n```python\nx = 5\nname = 'Alice'\n```\n",
+      "content": "Variables are used to store data. Python has several data types, including integers, floats, strings, and booleans.\n\nExample:\n```python\nx = 5\nname = 'Alice'\n```\n",
       "quiz": [
         {
           "question": "Which of these is a string?",
