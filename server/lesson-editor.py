@@ -11,8 +11,32 @@ class Editor(QMainWindow):
         self.edit_json_file = False
         self._initui()
 
-    def list_lessons(self):
-        pass
+    @staticmethod
+    def list_lessons():
+        with open('lessons.json', 'r') as f:
+            data = load(f)
+
+        whole_data = ""
+        for lesson in data["lessons"]:
+            whole_data += f'Title: {lesson["title"]} | ID: {lesson["id"]}\n'
+
+        return whole_data
+
+    @staticmethod
+    def find_lesson(lesson_id):
+        with open('lessons.json', 'r') as f:
+            data = load(f)
+
+        for lesson in data['lessons']:
+            try:
+                if int(lesson['id']) == int(lesson_id):
+                    for quiz in lesson['quiz']:  # Loop over the quiz list
+                        print(quiz['question'])
+
+                        return str(lesson['id']), str(lesson['title']), str(lesson['image']), str(lesson['description']), str(lesson['content']), str(quiz['question']), str(quiz['answer'])
+            except Exception as e:
+                print(e)
+                return None
 
     def create_json(self):
         if not self.edit_json_file:
@@ -89,11 +113,10 @@ class Editor(QMainWindow):
                 print(quiz['question'])
                 options_text = str(quiz['question'])
                 answer = str(quiz['answer'])
+                return title, image_path, description, content, options_text, answer
 
         except Exception:
             pass
-
-        return title, image_path, description, content, options_text, answer
 
 
     def del_json(self):
@@ -137,6 +160,7 @@ class Editor(QMainWindow):
         edit = QPushButton('Edit Lesson', self)
         delete = QPushButton('Delete Lesson', self)
         list_l = QPushButton('List Lessons', self)
+        lesson_info =  QPushButton('Lesson Information', self)
         settings = QPushButton('Settings', self)
 
         title.setObjectName('title')
@@ -151,6 +175,7 @@ class Editor(QMainWindow):
         layout.addWidget(edit)
         layout.addWidget(delete)
         layout.addWidget(list_l)
+        layout.addWidget(lesson_info)
         layout.addWidget(settings)
 
         self.setStyleSheet("""
@@ -185,15 +210,125 @@ class Editor(QMainWindow):
         edit.clicked.connect(self._init_edit_prompt)
         delete.clicked.connect(self._init_del_menu)
         settings.clicked.connect(self._init_settings)
+        list_l.clicked.connect(self._list_lessons_ui)
+        lesson_info.clicked.connect(self._lesson_info_ui_dialog)
 
         central.setLayout(layout)
+
+    def _lesson_info_ui_dialog(self):
+        def _get_data():
+            lesson_id = self.lesson_id_box.text()
+            if len(lesson_id) != 0:
+                try:
+                    int(lesson_id)
+                except (ValueError, TypeError) as ve:
+                    print(ve)
+                    return
+
+                data = self.find_lesson(lesson_id)
+                if data is not None:
+                    self.list_lesson_ui(data)
+
+        central = QWidget()
+        self.setCentralWidget(central)
+        layout = QVBoxLayout()
+
+        title = QLabel('PyEducate: Lesson Info', self)
+        self.lesson_id_box = QLineEdit(self)
+        self.lesson_id_box.setPlaceholderText('Enter Lesson ID')
+        submit = QPushButton('Get Lesson Info', self)
+
+        go_back = QPushButton('Go Back', self)
+
+        layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self.lesson_id_box)
+        layout.addWidget(submit)
+        layout.addSpacing(1)
+        layout.addWidget(go_back)
+
+        central.setLayout(layout)
+
+        submit.clicked.connect(_get_data)
+        go_back.clicked.connect(self._initui)
+
+    def list_lesson_ui(self, data):
+        central = QWidget()
+        self.setCentralWidget(central)
+        layout = QVBoxLayout()
+
+        lesson_order = ('ID', 'title', 'Image:', 'Description:', 'Content:', 'Quiz Question:', 'Quiz Answer:')
+
+        title = QLabel(self)
+        title.setText(str(data[1]))
+
+        lesson_data = ""
+        for idx, part in enumerate(lesson_order):
+            if idx != 1:
+                lesson_data += f'{part} {str(data[idx])}\n'
+            else:
+                continue
+
+        info_label = QLabel(self)
+        info_label.setText(str(lesson_data))
+
+        go_back = QPushButton('Go Back', self)
+
+        layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(info_label)
+        layout.addWidget(go_back)
+
+        central.setLayout(layout)
+
+        go_back.clicked.connect(self._initui)
 
     def _list_lessons_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout()
 
-        title_title = QLabel('PyEducate: Lesson List', self)
+        data = self.list_lessons()
+
+        title = QLabel('PyEducate: Lesson List', self)
+        lessons = QLabel(self)
+        lessons.setText(data.replace('\\n', '\n'))
+        go_back = QPushButton('Go Back', self)
+
+        layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(lessons)
+        layout.addWidget(go_back)
+
+        title.setObjectName('title')
+
+        self.setStyleSheet("""
+                            QMainWindow{
+                                background-color: white;
+                            }
+                            QLabel{
+                                color: black;
+                            }
+                            QLabel#title{
+                                font-size: 30px;
+                                font-weight: bold;
+                            }
+
+                            QPushButton{
+                                background-color: hsl(0, 1%, 27%);
+                                color: white;
+                                border: 1px solid;
+                                border-radius: 5px;
+                                font-weight: bold;
+                                font-size: 25px;
+                            }
+                            QPushButton:hover{
+                                background-color: hsl(0, 1%, 47%);
+                                color: white;
+                                border: 1px solid;
+                                border-radius: 5px;
+                            }
+                        """)
+
+        central.setLayout(layout)
+        go_back.clicked.connect(self._initui)
 
     def _initui_lesson(self):
         central = QWidget()
