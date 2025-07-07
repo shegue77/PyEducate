@@ -1,54 +1,113 @@
-import os
+
+# ---------------------------[ DEPENDENCIES ]---------------------------
 import socket
-import struct
-import requests
-from tqdm import tqdm
+from requests import get
 from json import load, loads, dump, dumps, JSONDecodeError
-from ast import literal_eval
+from os import getenv, makedirs
+from os.path import exists as os_path_exists
+# ----------------------------------------------------------------------
 
-def get_json_file(new_lesson):
-    if type(new_lesson) is dict:
-        try:
-            dumps(new_lesson)
-            print("✅ Dictionary is JSON serializable")
-        except (TypeError, OverflowError, JSONDecodeError) as e:
-            print("❌ Not JSON serializable:", e)
-            return None
 
+# -------------------------[ GLOBAL VARIABLES ]-------------------------
+client = None
+end_marker = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>" # End marker used when receiving JSON files, make sure that this end marker MATCHES the end marker on the server.
+id_amount = 1
+# ----------------------------------------------------------------------
+
+
+# Function gets the full path to APPDATA.
+def get_appdata_path():
+    path_to_appdata = getenv('APPDATA')
+    if os_path_exists(path_to_appdata + "\\PyEducate"):
+        if os_path_exists(path_to_appdata + "\\PyEducate\\client"):
+            full_path_data = path_to_appdata + "\\PyEducate\\client"
+        else:
+            makedirs(path_to_appdata + "\\PyEducate\\client")
+            full_path_data = path_to_appdata + "\\PyEducate\\client"
     else:
-        try:
-            new_lesson = loads(new_lesson)
-            print("✅ JSON is valid")
-        except JSONDecodeError as e:
-            print("❌ Invalid JSON:", e)
-            return None
+        makedirs(path_to_appdata + "\\PyEducate")
+        makedirs(path_to_appdata + "\\PyEducate\\client")
+        full_path_data = path_to_appdata + "\\PyEducate\\client"
 
-    # Modify (e.g., add a lesson)
-    data = new_lesson
-
-    # Save back to file
-    with open('lessons.json', 'w') as f:
-        dump(data, f, indent=2)
-        print('data written')
-
-    return 'SUCCESS'
+    return full_path_data
 
 
+# After download, the downloaded lesson gets sent here to be added to the JSON file containing locally-stored lessons.
+def get_json_file(new_lessons):
+    file_path = get_appdata_path() + '\\lessons.json'
 
-def get_mac_address():
     try:
-        # Execute the getmac command to get the MAC address
-        output = os.popen("getmac").read()
+        with open(file_path, 'r') as f:
+            data = load(f)
+    except FileNotFoundError:
+        data = {"lessons": []}
 
-        # Extract the first MAC address from the output
-        mac_address = output.split()[6]
-        return mac_address
+    lessons = data["lessons"]
 
-    except Exception as e:
-        print(f"Error: {e}")
-        return None
+    if type(new_lessons) == str:
+        try:
+            new_lessons = loads(new_lessons)
+        except JSONDecodeError as e:
+            print("❌ Invalid JSON string:", e)
+            return
 
+    if type(new_lessons) != list:
+        print("❌ Input must be a list of lessons.")
+        return
+
+    for lesson in new_lessons:
+        lesson["id"] = len(lessons) + 1
+        lessons.append(lesson)
+
+    with open(file_path, 'w') as f:
+        dump({"lessons": lessons}, f, indent=4)
+
+    print(f"✅ Added {len(new_lessons)} lessons.")
+    return "SUCCESS"
+
+
+# Downloads the lesson from the server (host).
+def download_file(client_r):
+
+    print("Listening for data...")
+
+    file_path = get_appdata_path() + '\\temp-lessons.json'
+
+    file = open(file_path, 'wb')
+    file_bytes = b""
+    done = False
+
+    while not done:
+        if file_bytes[-34:] == bytes(end_marker):
+            done = True
+            file_bytes = file_bytes[:-34]
+            break
+
+        print('Receiving data')
+        print(file_bytes)
+        data = client_r.recv(1024)
+
+        if file_bytes[-34:] == bytes(end_marker):
+            done = True
+            file_bytes = file_bytes[:-34]
+
+        else:
+            file_bytes += data
+
+        print('Updated')
+
+    file.write(file_bytes)
+    file.close()
+
+    lesson = open(file_path, 'r').read()
+    print(lesson)
+
+    get_json_file(lesson)
+
+
+# Connects to the server (host).
 def start_client(server_ip, server_port, server_type='ipv4'):
+    global client
     if server_type == 'ipv6':
         client = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
     else:
@@ -58,35 +117,53 @@ def start_client(server_ip, server_port, server_type='ipv4'):
 
     while True:
         print('e')
-        command = client.recv(2048).decode()
+        command = client.recv(32).decode()
         print(f"[Received Command] {command}")
 
-        if command.lower() == "!exit":
+        if command.strip().lower() == "!disconnect":
             break
 
-        if command.lower().split()[0] == "!sendjson":
-            json_part = command[len('!sendjson '):]  # extract the JSON substring
-            try:
-                data = loads(json_part)
-                print("Parsed JSON:", data)
-            except JSONDecodeError:
-                print("Invalid JSON data received")
-            get_json_file(json_part)
-
-            client.send(str(command).encode())
+        if command.lower() == "!sendjson":
+            print('a')
+            download_file(client)
             continue
 
         if command.lower() == "!getip":
-            response = requests.get('https://api64.ipify.org?format=json').json()
-            client.send(response['ip'].encode())
+            try:
+                response = get('https://api64.ipify.org?format=json').json()
+                client.sendall(response['ip'].encode())
+            except Exception as e:
+                print(e)
+                client.sendall('Error retrieving public IP address!'.encode())
             continue
 
     client.close()
 
-if __name__ == "__main__":
-    with open('connect-data.txt', 'r') as f:
-        SERVER_IP = str(f.readline().replace('\n', ''))
-        SERVER_PORT = int(f.readline())
-        IP_TYPE = str(f.readline())
+# Closes the client.
+def close_client():
+    global client
+    try:
+        client.close()
+    except Exception:
+        pass
+    client = None
 
-    start_client(SERVER_IP.replace('\n', ''), SERVER_PORT, IP_TYPE)
+
+# Reads the data about the IP, PORT and IP TYPE (IPv4/IPv6) of the server and connects to the server.
+if __name__ == "__main__":
+    file_path = get_appdata_path() + '\\connect-data.txt'
+    try:
+        with open(file_path, 'r') as f:
+            SERVER_IP = str(f.readline().strip().replace('\n', ''))
+            SERVER_PORT = int(f.readline().strip())
+            IP_TYPE = str(f.readline().strip()).lower()
+    except FileNotFoundError:
+        print('[!] Unable to locate save data!\n')
+        SERVER_IP = input("Enter server IP (IPv4/IPv6): ")
+        SERVER_PORT = input("Enter server port: ")
+        IP_TYPE = input("Enter IP type (IPv4/IPv6): ").lower()
+
+        with open(file_path, 'w') as f:
+            f.write(f"{SERVER_IP}\n{SERVER_PORT}\n{IP_TYPE}")
+
+    start_client(SERVER_IP, SERVER_PORT, IP_TYPE.lower())

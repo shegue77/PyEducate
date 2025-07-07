@@ -1,7 +1,13 @@
+
+# ------------------------------------------------------[ DEPENDENCIES ]-----------------------------------------------------
 from PySide6.QtWidgets import QMainWindow, QWidget, QLineEdit, QLabel, QPushButton, QApplication, QVBoxLayout, QPlainTextEdit
 from PySide6.QtGui import Qt
 from sys import argv as sys_argv, exit as sys_exit
 from json import load, loads, dump, dumps, JSONDecodeError
+from os import getenv, makedirs
+from os.path import exists as os_path_exists
+# ----------------------------------------------------------------------------------------------------------------------------
+
 
 class Editor(QMainWindow):
     def __init__(self):
@@ -9,12 +15,36 @@ class Editor(QMainWindow):
         self.setWindowTitle('PyEducate: Lesson Editor')
         self.id_input = 1
         self.edit_json_file = False
+        self.setContentsMargins(40, 40, 40, 40)
         self._initui()
 
+
+    # Function gets the full path to APPDATA.
     @staticmethod
-    def list_lessons():
-        with open('lessons.json', 'r') as f:
-            data = load(f)
+    def get_appdata_path():
+        path_to_appdata = getenv('APPDATA')
+        if os_path_exists(path_to_appdata + "\\PyEducate"):
+            if os_path_exists(path_to_appdata + "\\PyEducate\\server"):
+                full_path_data = path_to_appdata + "\\PyEducate\\server"
+            else:
+                makedirs(path_to_appdata + "\\PyEducate\\server")
+                full_path_data = path_to_appdata + "\\PyEducate\\server"
+        else:
+            makedirs(path_to_appdata + "\\PyEducate")
+            makedirs(path_to_appdata + "\\PyEducate\\server")
+            full_path_data = path_to_appdata + "\\PyEducate\\server"
+
+        return full_path_data
+
+    def list_lessons(self):
+        file_path = self.get_appdata_path() + '\\lessons.json'
+        try:
+            with open(file_path, 'r') as f:
+                data = load(f)
+        except FileNotFoundError:
+            with open(file_path, 'w') as f:
+                data = {"lessons": []}
+                dump(data, f)
 
         whole_data = ""
         for lesson in data["lessons"]:
@@ -22,9 +52,10 @@ class Editor(QMainWindow):
 
         return whole_data
 
-    @staticmethod
-    def find_lesson(lesson_id):
-        with open('lessons.json', 'r') as f:
+    def find_lesson(self, lesson_id):
+        file_path = self.get_appdata_path() + '\\lessons.json'
+
+        with open(file_path, 'r') as f:
             data = load(f)
 
         for lesson in data['lessons']:
@@ -39,9 +70,12 @@ class Editor(QMainWindow):
                 return None
 
     def create_json(self):
+        file_path = self.get_appdata_path() + '\\lessons.json'
+
         if not self.edit_json_file:
             title = str(self.title_name.text())
             mild_desc = str(self.description_text.text())
+            image = str(self.image_path.text())
             content = str(self.content_text.toPlainText().replace('\n', '\\n'))
             question = '"' + str(self.quiz_question_text.text()) + '"'
             answer = '"' + str(self.quiz_answer_text.toPlainText().replace('\n', '\\n')) + '"'
@@ -51,8 +85,9 @@ class Editor(QMainWindow):
         quiz = '[{"question": ' + question + ', "answer": ' + answer + '}]'
 
         def read_json():
+            file_path = self.get_appdata_path() + '\\lessons.json'
 
-            with open('lessons.json', 'r') as f:
+            with open(file_path, 'r') as f:
                 data = load(f)
 
             for lesson in data["lessons"]:
@@ -64,7 +99,7 @@ class Editor(QMainWindow):
 
         read_json()
 
-        new_lesson = '{"id": ' + str(self.id_input) + ', "title": "' + title + '", "description": "' + mild_desc + '", "content": "' + content + '", "quiz": ' + quiz + '}'
+        new_lesson = '{"id": ' + str(self.id_input) + ', "title": "' + title + '", "description": "' + mild_desc + '", "image": "' + image + '", "content": "' + content + '", "quiz": ' + quiz + '}'
 
         if type(new_lesson) is dict:
             try:
@@ -72,7 +107,7 @@ class Editor(QMainWindow):
                 print("✅ Dictionary is JSON serializable")
             except (TypeError, OverflowError) as e:
                 print("❌ Not JSON serializable:", e)
-                exit()
+                return
 
         else:
             try:
@@ -80,49 +115,50 @@ class Editor(QMainWindow):
                 print("✅ JSON is valid")
             except JSONDecodeError as e:
                 print("❌ Invalid JSON:", e)
-                exit()
+                print(new_lesson)
+                return
 
         # Load from file
-        with open('lessons.json', 'r') as f:
+        with open(file_path, 'r') as f:
             data = load(f)
 
         # Modify (e.g., add a lesson)
         data["lessons"].append(new_lesson)
 
         # Save back to file
-        with open('lessons.json', 'w') as f:
+        with open(file_path, 'w') as f:
             dump(data, f, indent=2)
             print('data written')
+            self._initui()
 
     def edit_json(self, id_n):
-        with open('lessons.json', 'r') as file:
+        file_path = self.get_appdata_path() + '\\lessons.json'
+        with open(file_path, 'r') as file:
             data = load(file)
 
         for lesson in data['lessons']:
             if int(lesson['id']) == int(id_n):
                 correct_lesson = lesson
-                break
+                title = correct_lesson['title']
+                image_path = correct_lesson['image']
+                description = correct_lesson['description']
+                content = correct_lesson['content']
 
-        title = correct_lesson['title']
-        image_path = correct_lesson['image']
-        description = correct_lesson['description']
-        content = correct_lesson['content']
+                try:
+                    for quiz in correct_lesson['quiz']:  # Loop over the quiz list
+                        print(quiz['question'])
+                        options_text = str(quiz['question'])
+                        answer = str(quiz['answer'])
+                        return title, image_path, description, content, options_text, answer
 
-        try:
-            for quiz in correct_lesson['quiz']:  # Loop over the quiz list
-                print(quiz['question'])
-                options_text = str(quiz['question'])
-                answer = str(quiz['answer'])
-                return title, image_path, description, content, options_text, answer
-
-        except Exception:
-            pass
+                except Exception:
+                    break
 
 
     def del_json(self):
         id_input = self.id_input
 
-        file_path = 'lessons.json'
+        file_path = self.get_appdata_path() + '\\lessons.json'
 
         with open(file_path, 'r') as f:
             data = load(f)
@@ -171,12 +207,14 @@ class Editor(QMainWindow):
         list_l.setObjectName('list_l')
 
         layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addStretch(1)
         layout.addWidget(create)
         layout.addWidget(edit)
         layout.addWidget(delete)
         layout.addWidget(list_l)
         layout.addWidget(lesson_info)
         layout.addWidget(settings)
+        layout.addStretch(1)
 
         self.setStyleSheet("""
                     QMainWindow{
@@ -186,8 +224,9 @@ class Editor(QMainWindow):
                         color: black;
                     }
                     QLabel#title{
-                        font-size: 30px;
+                        font-size: 40px;
                         font-weight: bold;
+                        text-decoration: underline;
                     }
                     
                     QPushButton{
@@ -240,11 +279,48 @@ class Editor(QMainWindow):
 
         go_back = QPushButton('Go Back', self)
 
+        title.setObjectName('title')
+
         layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(self.lesson_id_box)
         layout.addWidget(submit)
         layout.addSpacing(1)
         layout.addWidget(go_back)
+
+        self.setStyleSheet("""
+                                    QMainWindow{
+                                        background-color: white;
+                                    }
+                                    QLabel{
+                                        color: black;
+                                        font-size: 25px;
+                                    }
+                                    QLabel#title{
+                                        font-size: 40px;
+                                        font-weight: bold;
+                                    }
+                                    QLineEdit{
+                                        background-color: white;
+                                        color: black;
+                                        border: 1px solid;
+                                        border-radius: 5px;
+                                        font-size: 20px;
+                                    }
+                                    QPushButton{
+                                        background-color: hsl(0, 1%, 27%);
+                                        color: white;
+                                        border: 1px solid;
+                                        border-radius: 5px;
+                                        font-weight: bold;
+                                        font-size: 25px;
+                                    }
+                                    QPushButton:hover{
+                                        background-color: hsl(0, 1%, 47%);
+                                        color: white;
+                                        border: 1px solid;
+                                        border-radius: 5px;
+                                    }
+                                """)
 
         central.setLayout(layout)
 
@@ -256,7 +332,7 @@ class Editor(QMainWindow):
         self.setCentralWidget(central)
         layout = QVBoxLayout()
 
-        lesson_order = ('ID', 'title', 'Image:', 'Description:', 'Content:', 'Quiz Question:', 'Quiz Answer:')
+        lesson_order = ('ID:', 'title', 'Image:', 'Description:', 'Content:', 'Quiz Question:', 'Quiz Answer:')
 
         title = QLabel(self)
         title.setText(str(data[1]))
@@ -272,10 +348,45 @@ class Editor(QMainWindow):
         info_label.setText(str(lesson_data))
 
         go_back = QPushButton('Go Back', self)
+        title.setObjectName('title')
 
         layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(info_label)
         layout.addWidget(go_back)
+
+        self.setStyleSheet("""
+                                    QMainWindow{
+                                        background-color: white;
+                                    }
+                                    QLabel{
+                                        color: black;
+                                    }
+                                    QLabel#title{
+                                        font-size: 30px;
+                                        font-weight: bold;
+                                    }
+                                    QLineEdit{
+                                        background-color: white;
+                                        color: black;
+                                        border: 1px solid;
+                                        border-radius: 5px;
+                                        font-size: 20px;
+                                    }
+                                    QPushButton{
+                                        background-color: hsl(0, 1%, 27%);
+                                        color: white;
+                                        border: 1px solid;
+                                        border-radius: 5px;
+                                        font-weight: bold;
+                                        font-size: 25px;
+                                    }
+                                    QPushButton:hover{
+                                        background-color: hsl(0, 1%, 47%);
+                                        color: white;
+                                        border: 1px solid;
+                                        border-radius: 5px;
+                                    }
+                                """)
 
         central.setLayout(layout)
 
@@ -331,6 +442,22 @@ class Editor(QMainWindow):
         go_back.clicked.connect(self._initui)
 
     def _initui_lesson(self):
+        def add_json():
+            all_texts = (self.title_name, self.description_text, self.image_path, self.content_text, self.quiz_question_text, self.quiz_answer_text, self.image_path)
+            required_texts = [self.title_name.text(), self.description_text.text(), self.content_text.toPlainText(), self.quiz_question_text.text(), self.quiz_answer_text.toPlainText()]
+            for text in required_texts:
+                if str(text) == '':
+                    return
+
+            required_texts.append(self.image_path.text())
+            for part in all_texts:
+                try:
+                    part.setText(str(part.text()).replace('"', "'"))
+                except AttributeError:
+                    part.setPlainText(str(part.toPlainText()).replace('"', "'"))
+
+            self.create_json()
+
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout()
@@ -410,13 +537,25 @@ class Editor(QMainWindow):
                         """)
 
         go_back_del.clicked.connect(self._initui)
-        submit_data.clicked.connect(self.create_json)
+        submit_data.clicked.connect(add_json)
 
         central.setLayout(layout)
 
     def _init_edit_prompt(self):
+        file_path = self.get_appdata_path() + '\\lessons.json'
 
         def _submit():
+            is_valid_id = False
+            try:
+                with open(file_path, 'r') as f:
+                    data = load(f)
+                for lesson in data['lessons']:
+                    if str(lesson['id']) == str(self.id_name.text()):
+                        is_valid_id = True
+                        break
+            except FileNotFoundError:
+                return
+
             self._init_edit_menu(self.id_name.text())
 
         central = QWidget()
