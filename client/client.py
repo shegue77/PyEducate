@@ -1,13 +1,13 @@
-import connectmod
 import sys
-
 from json import load as json_load, dump
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QPlainTextEdit, QVBoxLayout, QPushButton, QLineEdit, QHBoxLayout
-from PySide6.QtGui import Qt, QPixmap, QColor
 from threading import Thread
 from time import sleep
 from os import getenv, makedirs
 from os.path import exists as os_path_exists
+
+import connectmod
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QPlainTextEdit, QVBoxLayout, QPushButton, QLineEdit, QHBoxLayout
+from PySide6.QtGui import Qt, QPixmap, QColor
 
 def get_appdata_path():
     path_to_appdata = getenv('APPDATA')
@@ -35,34 +35,27 @@ def attempt_connect_loop(SERVER_IP, SERVER_PORT, IP_TYPE):
         except (ConnectionError, ConnectionRefusedError, ConnectionResetError) as e:
             try:
                 connectmod.close_client()
-            except:
+            except Exception:
                 pass
             print(f"{e} Retrying in 10 seconds...")
             sleep(10)
 
 
 try:
-    with open(f'{get_appdata_path()}\\connect-data.txt', 'r') as f:
+    with open(f'{get_appdata_path()}\\connect-data.txt', 'r', encoding='utf-8') as f:
         SERVER_IP = str(f.readline().replace('\n', ''))
-        SERVER_PORT = int(f.readline())
-        IP_TYPE = str(f.readline())
+        SERVER_PORT = int(f.readline().replace('\n', ''))
+        IP_TYPE = str(f.readline().replace('\n', ''))
 
     thread = Thread(target=attempt_connect_loop, args=(SERVER_IP, SERVER_PORT, IP_TYPE), daemon=True).start()
 
 except FileNotFoundError as fe:
-    try:
-        with open('../dist/connectmod/connect-data.txt', 'r') as f:
-            SERVER_IP = str(f.readline().replace('\n', ''))
-            SERVER_PORT = int(f.readline())
-            IP_TYPE = str(f.readline())
+    print(f'[!!] Connect data not found!\n{fe}')
 
-        with open(f'{get_appdata_path()}\\connect-data.txt', 'w') as f:
-            f.write(f'{SERVER_IP}\n{SERVER_PORT}\n{IP_TYPE}')
-
-        thread = Thread(target=attempt_connect_loop, args=(SERVER_IP, SERVER_PORT, IP_TYPE), daemon=True).start()
-    except Exception as fe:
-        print(f'[!!] Connect data not found!\n{fe}')
-
+except ValueError as ve:
+    print(f'[!!] Corrupted data!\n{ve}')
+    with open(f'{get_appdata_path()}\\connect-data.txt', 'w', encoding='utf-8') as f:
+        f.write('')
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -102,7 +95,7 @@ class MainWindow(QMainWindow):
     def reload_json(self):
         file_path = f'{get_appdata_path()}\\lessons.json'
         try:
-            with open(file_path, 'r') as file:
+            with open(file_path, 'r', encoding="utf-8") as file:
                 self.data = json_load(file)
                 print('reloaded')
         except FileNotFoundError as fe:
@@ -110,7 +103,7 @@ class MainWindow(QMainWindow):
             print()
             makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
             if not os_path_exists(file_path):
-                with open(file_path, 'w') as file:
+                with open(file_path, 'w', encoding="utf-8") as file:
                     data = {"lessons":[]}
                     dump(data, file)
                     print('reloaded')
@@ -126,7 +119,7 @@ class MainWindow(QMainWindow):
                 break
 
             try:
-                with open(file_path, 'r') as file:
+                with open(file_path, 'r', encoding="utf-8") as file:
                     self.data = json_load(file)
                     print('reloaded')
 
@@ -135,12 +128,12 @@ class MainWindow(QMainWindow):
                 print()
                 makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
                 if not os_path_exists(file_path):
-                    with open(file_path, 'w') as file:
+                    with open(file_path, 'w', encoding="utf-8") as file:
                         data = {"lessons":[]}
                         dump(data, file)
 
             except Exception as e:
-                with open(file_path, 'r') as file:
+                with open(file_path, 'r', encoding="utf-8") as file:
                     self.data = json_load(file)
                     print('reloaded')
                 print(e)
@@ -150,7 +143,7 @@ class MainWindow(QMainWindow):
             self._init_lesson(correct_lesson)
         else:
             try:
-                with open(file_path, 'r') as file:
+                with open(file_path, 'r', encoding="utf-8") as file:
                     self.data = json_load(file)
                     print('reloaded')
 
@@ -159,7 +152,7 @@ class MainWindow(QMainWindow):
                 print()
                 makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
                 if not os_path_exists(file_path):
-                    with open(file_path, 'w') as file:
+                    with open(file_path, 'w', encoding="utf-8") as file:
                         data = {"lessons":[]}
                         dump(data, file)
 
@@ -167,7 +160,7 @@ class MainWindow(QMainWindow):
     def get_lessons_for_page(page_number):
         file_path = f'{get_appdata_path()}\\lessons.json'
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path, 'r', encoding="utf-8") as f:
                 data = json_load(f)
 
         except FileNotFoundError as fe:
@@ -175,7 +168,7 @@ class MainWindow(QMainWindow):
             print()
             makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
             if not os_path_exists(file_path):
-                with open(file_path, 'w') as file:
+                with open(file_path, 'w', encoding="utf-8") as file:
                     data = {"lessons":[]}
                     dump(data, file)
             return []
@@ -195,12 +188,12 @@ class MainWindow(QMainWindow):
     def list_lesson_ids():
         file_path = f'{get_appdata_path()}\\lessons.json'
         def create_json():
-            with open(file_path, 'w') as file:
+            with open(file_path, 'w', encoding="utf-8") as file:
                 json_data = {"lessons":[]}
                 dump(json_data, file, indent=4)
 
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path, 'r', encoding="utf-8") as f:
                 data = json_load(f)
 
         except FileNotFoundError as fe:
@@ -225,14 +218,14 @@ class MainWindow(QMainWindow):
     def find_lesson(lesson_id):
         file_path = f'{get_appdata_path()}\\lessons.json'
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path, 'r', encoding="utf-8") as f:
                 data = json_load(f)
         except FileNotFoundError as fe:
             print(fe)
             print()
             makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
             if not os_path_exists(file_path):
-                with open(file_path, 'w') as file:
+                with open(file_path, 'w', encoding="utf-8") as file:
                     data = {"lessons":[]}
                     dump(data, file)
                 return None
@@ -258,13 +251,13 @@ class MainWindow(QMainWindow):
 
             if any(pages_lessons):
                 return pages_lessons
-            else:
-                if self.page != 1:
-                    print(f"[!] No lesson IDs on page {self.page}.")
-                    self.page = 1
-                    return
-                else:
-                    return [None, None, None, None]
+
+            if self.page != 1:
+                print(f"[!] No lesson IDs on page {self.page}.")
+                self.page = 1
+                return None
+
+            return [None, None, None, None]
 
         while True:
             result = setup_page()
@@ -276,17 +269,17 @@ class MainWindow(QMainWindow):
             print(total_page)
             print(self.page >= total_page)
             if self.page >= total_page:
-                return
-            else:
-                self.page += 1
-                self.search()
+                return None
+
+            self.page += 1
+            self.search()
 
         def previous_page_set():
             if self.page <= 1:
-                return
-            else:
-                self.page -= 1
-                self.search()
+                return None
+
+            self.page -= 1
+            self.search()
 
         all_layouts = QVBoxLayout(self)
         top_layout = QVBoxLayout(self)
@@ -513,7 +506,7 @@ class MainWindow(QMainWindow):
         layout.addStretch(1)
         try:
             layout.addWidget(image, alignment=Qt.AlignmentFlag.AlignHCenter)
-        except:
+        except Exception:
             pass
 
         layout.addStretch(1)
@@ -531,7 +524,7 @@ class MainWindow(QMainWindow):
         content.setObjectName('content')
         try:
             image.setObjectName('image')
-        except:
+        except Exception:
             pass
 
         self.setStyleSheet("""
@@ -583,14 +576,14 @@ class MainWindow(QMainWindow):
     def _init_settings(self):
         def set_connect_data():
             file_path = get_appdata_path() + '\\connect-data.txt'
-            required_texts = (self.server_ip_text, self.server_port_text, self.server_ip_text)
+            required_texts = (self.server_ip_text, self.server_port_text, self.server_type_text)
             for text in required_texts:
                 if text.text() == '':
                     return
 
-            with open(file_path, 'w') as f:
+            with open(file_path, 'w') as file:
                 data = f'{required_texts[0].text()}\n{required_texts[1].text()}\n{required_texts[2].text()}'
-                f.write(data)
+                file.write(data)
 
 
         central = QWidget()
@@ -613,15 +606,12 @@ class MainWindow(QMainWindow):
         go_back = QPushButton('Go Back', self)
 
         try:
-            with open(file_path, 'r') as f:
-                self.server_ip_text.setText(f.readline())
-                self.server_port_text.setText(f.readline())
-                self.server_type_text.setText(f.readline())
+            with open(file_path, 'r') as file:
+                self.server_ip_text.setText(file.readline())
+                self.server_port_text.setText(file.readline())
+                self.server_type_text.setText(file.readline())
 
-        except FileNotFoundError:
-            pass
-
-        except Exception:
+        except (FileNotFoundError, PermissionError):
             pass
 
         title.setObjectName('title')

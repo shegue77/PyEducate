@@ -1,10 +1,11 @@
+# Connects the client to the server
 
 # ---------------------------[ DEPENDENCIES ]---------------------------
 import socket
-from requests import get
-from json import load, loads, dump, dumps, JSONDecodeError
 from os import getenv, makedirs
 from os.path import exists as os_path_exists
+from json import load, loads, dump, JSONDecodeError
+from requests import get
 # ----------------------------------------------------------------------
 
 
@@ -37,29 +38,29 @@ def get_json_file(new_lessons):
     file_path = get_appdata_path() + '\\lessons.json'
 
     try:
-        with open(file_path, 'r') as f:
-            data = load(f)
+        with open(file_path, 'r', encoding='utf-8') as file:
+            data = load(file)
     except FileNotFoundError:
         data = {"lessons": []}
 
     lessons = data["lessons"]
 
-    if type(new_lessons) == str:
+    if isinstance(new_lessons, str):
         try:
             new_lessons = loads(new_lessons)
         except JSONDecodeError as e:
             print("❌ Invalid JSON string:", e)
-            return
+            return None
 
-    if type(new_lessons) != list:
+    if not isinstance(new_lessons, list):
         print("❌ Input must be a list of lessons.")
-        return
+        return None
 
     for lesson in new_lessons:
         lesson["id"] = len(lessons) + 1
         lessons.append(lesson)
 
-    with open(file_path, 'w') as f:
+    with open(file_path, 'w', encoding='utf-8') as f:
         dump({"lessons": lessons}, f, indent=4)
 
     print(f"✅ Added {len(new_lessons)} lessons.")
@@ -99,7 +100,7 @@ def download_file(client_r):
     file.write(file_bytes)
     file.close()
 
-    lesson = open(file_path, 'r').read()
+    lesson = open(file_path, 'r', encoding='utf-8').read()
     print(lesson)
 
     get_json_file(lesson)
@@ -153,7 +154,7 @@ def close_client():
 if __name__ == "__main__":
     file_path = get_appdata_path() + '\\connect-data.txt'
     try:
-        with open(file_path, 'r') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             SERVER_IP = str(f.readline().strip().replace('\n', ''))
             SERVER_PORT = int(f.readline().strip())
             IP_TYPE = str(f.readline().strip()).lower()
@@ -163,7 +164,8 @@ if __name__ == "__main__":
         SERVER_PORT = input("Enter server port: ")
         IP_TYPE = input("Enter IP type (IPv4/IPv6): ").lower()
 
-        with open(file_path, 'w') as f:
+        with open(file_path, 'w', encoding='utf-8') as f:
             f.write(f"{SERVER_IP}\n{SERVER_PORT}\n{IP_TYPE}")
+
 
     start_client(SERVER_IP, SERVER_PORT, IP_TYPE.lower())
