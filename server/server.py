@@ -39,7 +39,7 @@ def send_json(client, file_path):
 
     print('Sending initiated')
     print('Got file size')
-    file = open(file_path, 'r')
+    file = open(file_path, 'r', encoding='utf-8')
     full_data = file.read()
 
     try:
@@ -283,17 +283,17 @@ def process_commands(server, server_data):
 # Reads the data about the IP, PORT and IP TYPE (IPv4/IPv6) of the server and connects to the server.
 if __name__ == "__main__":
     full_path = get_appdata_path()
-    answer = str(input('Would you like to change any settings (y/n): ')).strip().lower()
-    if answer == 'y' or answer == 'yes':
+    ANSWER = str(input('Would you like to change any settings (y/n): ')).strip().lower()
+    if ANSWER == 'y' or ANSWER == 'yes':
         SERVER_IP = str(input("Enter server IP (IPv4/IPv6): "))
         SERVER_PORT = int(input("Enter server port: "))
         IP_TYPE = str(input("Enter IP type (IPv4/IPv6): ")).lower()
         end_marker = input("Enter the end marker if desired (Must match with client. End marker has a default preset): ")
-        with open(full_path + '\\connect-data.txt', 'w') as f:
+        with open(full_path + '\\connect-data.txt', 'w', encoding='utf-8') as f:
             f.write(f"{SERVER_IP}\n{SERVER_PORT}\n{IP_TYPE}\n{end_marker}")
 
     try:
-        with open(full_path + '\\connect-data.txt', 'r') as f:
+        with open(full_path + '\\connect-data.txt', 'r', encoding='utf-8') as f:
             SERVER_IP = str(f.readline().strip().replace('\n', ''))
             SERVER_PORT = int(f.readline().strip().replace(' ', ''))
             try:
@@ -308,15 +308,15 @@ if __name__ == "__main__":
 
     except FileNotFoundError:
         print('[!] Unable to locate save data!\n')
-        SERVER_IP = str(input("Enter server IP (IPv4/IPv6): "))
+        SERVER_IP = str(input("Enter server IP (local): "))
         SERVER_PORT = int(input("Enter server port: "))
         IP_TYPE = str(input("Enter IP type (IPv4/IPv6): ")).lower()
-        end_marker = input("Enter the end marker if desired (Must match with client. End marker has a default preset): ")
+        end_marker = input("Enter the end marker if desired (Must match with client. Enter nothing if unsure): ")
         try:
             end_marker = bytes(end_marker)
         except Exception:
             end_marker = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"
-        with open(full_path + '\\connect-data.txt', 'w') as f:
+        with open(full_path + '\\connect-data.txt', 'w', encoding='utf-8') as f:
             f.write(f"{SERVER_IP}\n{SERVER_PORT}\n{IP_TYPE}\n{end_marker}")
 
     start_server(SERVER_IP, SERVER_PORT, IP_TYPE, end_marker)

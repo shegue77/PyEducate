@@ -1,11 +1,11 @@
 
 # ------------------------------------------------------[ DEPENDENCIES ]-----------------------------------------------------
-from PySide6.QtWidgets import QMainWindow, QWidget, QLineEdit, QLabel, QPushButton, QApplication, QVBoxLayout, QPlainTextEdit
-from PySide6.QtGui import Qt
 from sys import argv as sys_argv, exit as sys_exit
 from json import load, loads, dump, dumps, JSONDecodeError
 from os import getenv, makedirs
 from os.path import exists as os_path_exists
+from PySide6.QtWidgets import QMainWindow, QWidget, QLineEdit, QLabel, QPushButton, QApplication, QVBoxLayout, QPlainTextEdit
+from PySide6.QtGui import Qt
 # ----------------------------------------------------------------------------------------------------------------------------
 
 
@@ -39,10 +39,10 @@ class Editor(QMainWindow):
     def list_lessons(self):
         file_path = self.get_appdata_path() + '\\lessons.json'
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 data = load(f)
         except FileNotFoundError:
-            with open(file_path, 'w') as f:
+            with open(file_path, 'w', encoding='utf-8') as f:
                 data = {"lessons": []}
                 dump(data, f)
 
@@ -55,7 +55,7 @@ class Editor(QMainWindow):
     def find_lesson(self, lesson_id):
         file_path = self.get_appdata_path() + '\\lessons.json'
 
-        with open(file_path, 'r') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             data = load(f)
 
         for lesson in data['lessons']:
@@ -87,8 +87,11 @@ class Editor(QMainWindow):
         def read_json():
             file_path = self.get_appdata_path() + '\\lessons.json'
 
-            with open(file_path, 'r') as f:
-                data = load(f)
+            try:
+                with open(file_path, 'r') as f:
+                    data = load(f)
+            except FileNotFoundError:
+                return
 
             for lesson in data["lessons"]:
                 for id_num in str(lesson["id"]):
@@ -101,7 +104,7 @@ class Editor(QMainWindow):
 
         new_lesson = '{"id": ' + str(self.id_input) + ', "title": "' + title + '", "description": "' + mild_desc + '", "image": "' + image + '", "content": "' + content + '", "quiz": ' + quiz + '}'
 
-        if type(new_lesson) is dict:
+        if isinstance(new_lesson, dict):
             try:
                 dumps(new_lesson)
                 print("✅ Dictionary is JSON serializable")
@@ -119,8 +122,11 @@ class Editor(QMainWindow):
                 return
 
         # Load from file
-        with open(file_path, 'r') as f:
-            data = load(f)
+        try:
+            with open(file_path, 'r') as f:
+                data = load(f)
+        except FileNotFoundError:
+            data = {"lessons": []}
 
         # Modify (e.g., add a lesson)
         data["lessons"].append(new_lesson)
@@ -198,6 +204,7 @@ class Editor(QMainWindow):
         list_l = QPushButton('List Lessons', self)
         lesson_info =  QPushButton('Lesson Information', self)
         settings = QPushButton('Settings', self)
+        settings.setDisabled(True)
 
         title.setObjectName('title')
         create.setObjectName('create')
@@ -547,7 +554,7 @@ class Editor(QMainWindow):
         def _submit():
             is_valid_id = False
             try:
-                with open(file_path, 'r') as f:
+                with open(file_path, 'r', encoding='utf-8') as f:
                     data = load(f)
                 for lesson in data['lessons']:
                     if str(lesson['id']) == str(self.id_name.text()):
@@ -556,7 +563,8 @@ class Editor(QMainWindow):
             except FileNotFoundError:
                 return
 
-            self._init_edit_menu(self.id_name.text())
+            if is_valid_id:
+                self._init_edit_menu(self.id_name.text())
 
         central = QWidget()
         self.setCentralWidget(central)
