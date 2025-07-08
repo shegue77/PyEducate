@@ -2,6 +2,7 @@
 
 A powerful **file-sharing education app** made in Python! Works across devices across the same network with minimal setup.
 
+---
 ## 🛡️ Supports:
 - ✅ One-to-one file transfers
 - ✅ Graphical User Interface
@@ -20,14 +21,22 @@ A powerful **file-sharing education app** made in Python! Works across devices a
     - Easy-to-navigate GUI
     - Create & delete lessons
     - Edit lessons
+    - View available lessons
 
 
-- 📥 **Client Program (Students)**  
-  - Start/Stop receiving with one click  
+- 📥 **Client Program**
   - Set listening port 
   - User-friendly interface
   - Easy access to lessons (stored locally)
   - Automatically connects to the server
+
+---
+
+## ❓How it works
+- **Host** uses the **lesson editor** to create lessons, saved in JSON format; sorted by ID.
+- **Host** uses the **server program** which contains a suite of commands used to send & receive data.
+- **Client** connects to **server** via the **server program**.
+- Lessons are sent remotely through the **server program** to the **client**.
 
 ---
 
