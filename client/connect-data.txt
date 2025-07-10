@@ -1,3 +1,0 @@
-localhost
-8044
-ipv4
