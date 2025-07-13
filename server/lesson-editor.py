@@ -3,6 +3,7 @@
 from sys import argv as sys_argv, exit as sys_exit
 from json import load, loads, dump, dumps, JSONDecodeError
 from os import getenv, makedirs
+from datetime import datetime
 from os.path import exists as os_path_exists
 from PySide6.QtWidgets import QMainWindow, QWidget, QLineEdit, QLabel, QPushButton, QApplication, QVBoxLayout, QPlainTextEdit
 from PySide6.QtGui import Qt
@@ -36,11 +37,32 @@ class Editor(QMainWindow):
 
         return full_path_data
 
+    def log_error(self, data):
+
+        # Get current time
+        now = datetime.now()
+        timestamp = now.strftime("%d-%m-%Y %H:%M:%S")
+        log_path = str(self.get_appdata_path() + '\\lesson-editor.log')
+
+        data = str(timestamp + ' ' + data + '\n')
+
+        try:
+            with open(log_path, 'a') as f:
+                f.write(data)
+
+        except FileNotFoundError:
+            with open(log_path, 'w') as f:
+                f.write(data)
+
+        except PermissionError:
+            print(f'[!] Insufficient permissions!\nUnable to log data at {log_path}!')
+
     def list_lessons(self):
         file_path = self.get_appdata_path() + '\\lessons.json'
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = load(f)
+
         except FileNotFoundError:
             with open(file_path, 'w', encoding='utf-8') as f:
                 data = {"lessons": []}
@@ -66,7 +88,7 @@ class Editor(QMainWindow):
 
                         return str(lesson['id']), str(lesson['title']), str(lesson['image']), str(lesson['description']), str(lesson['content']), str(quiz['question']), str(quiz['answer'])
             except Exception as e:
-                print(e)
+                self.log_error(e)
                 return None
 
     def create_json(self):
@@ -90,7 +112,8 @@ class Editor(QMainWindow):
             try:
                 with open(file_path, 'r') as f:
                     data = load(f)
-            except FileNotFoundError:
+            except FileNotFoundError as fe:
+                self.log_error(fe)
                 return
 
             for lesson in data["lessons"]:
@@ -110,6 +133,7 @@ class Editor(QMainWindow):
                 print("✅ Dictionary is JSON serializable")
             except (TypeError, OverflowError) as e:
                 print("❌ Not JSON serializable:", e)
+                self.log_error(e)
                 return
 
         else:
@@ -119,12 +143,14 @@ class Editor(QMainWindow):
             except JSONDecodeError as e:
                 print("❌ Invalid JSON:", e)
                 print(new_lesson)
+                self.log_error(e)
                 return
 
         # Load from file
         try:
             with open(file_path, 'r') as f:
                 data = load(f)
+
         except FileNotFoundError:
             data = {"lessons": []}
 
@@ -157,7 +183,8 @@ class Editor(QMainWindow):
                         answer = str(quiz['answer'])
                         return title, image_path, description, content, options_text, answer
 
-                except Exception:
+                except Exception as e:
+                    self.log_error(e)
                     break
 
 
@@ -189,8 +216,8 @@ class Editor(QMainWindow):
             else:
                 self.status.setText(f"❌ Lesson with ID {id_input} is unable to be removed!")
 
-        except Exception:
-            pass
+        except Exception as e:
+            self.log_error(e)
 
     def _initui(self):
         central = QWidget()
@@ -269,6 +296,7 @@ class Editor(QMainWindow):
                     int(lesson_id)
                 except (ValueError, TypeError) as ve:
                     print(ve)
+                    self.log_error(ve)
                     return
 
                 data = self.find_lesson(lesson_id)
@@ -460,6 +488,7 @@ class Editor(QMainWindow):
             for part in all_texts:
                 try:
                     part.setText(str(part.text()).replace('"', "'"))
+
                 except AttributeError:
                     part.setPlainText(str(part.toPlainText()).replace('"', "'"))
 
@@ -560,7 +589,9 @@ class Editor(QMainWindow):
                     if str(lesson['id']) == str(self.id_name.text()):
                         is_valid_id = True
                         break
-            except FileNotFoundError:
+
+            except FileNotFoundError as fe:
+                self.log_error(fe)
                 return
 
             if is_valid_id:

@@ -5,6 +5,7 @@ import socket
 from os import getenv, makedirs
 from os.path import exists as os_path_exists
 from json import load, loads, dump, JSONDecodeError
+from datetime import datetime
 from requests import get
 # ----------------------------------------------------------------------
 
@@ -32,6 +33,26 @@ def get_appdata_path():
 
     return full_path_data
 
+def log_error(data):
+
+    # Get current time
+    now = datetime.now()
+    timestamp = now.strftime("%d-%m-%Y %H:%M:%S")
+    log_path = str(get_appdata_path() + '\\client-module.log')
+
+    data = str(timestamp + ' ' + data + '\n')
+
+    try:
+        with open(log_path, 'a') as f:
+            f.write(data)
+
+    except FileNotFoundError:
+        with open(log_path, 'w') as f:
+            f.write(data)
+
+    except PermissionError:
+        print(f'[!] Insufficient permissions!\nUnable to log data at {log_path}!')
+
 
 # After download, the downloaded lesson gets sent here to be added to the JSON file containing locally-stored lessons.
 def get_json_file(new_lessons):
@@ -40,6 +61,7 @@ def get_json_file(new_lessons):
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             data = load(file)
+
     except FileNotFoundError:
         data = {"lessons": []}
 
@@ -49,6 +71,7 @@ def get_json_file(new_lessons):
         try:
             new_lessons = loads(new_lessons)
         except JSONDecodeError as e:
+            log_error(e)
             print("❌ Invalid JSON string:", e)
             return None
 
@@ -133,8 +156,10 @@ def start_client(server_ip, server_port, server_type='ipv4'):
             try:
                 response = get('https://api64.ipify.org?format=json').json()
                 client.sendall(response['ip'].encode())
+
             except Exception as e:
                 print(e)
+                log_error(e)
                 client.sendall('Error retrieving public IP address!'.encode())
             continue
 
@@ -145,6 +170,7 @@ def close_client():
     global client
     try:
         client.close()
+
     except Exception:
         pass
     client = None
@@ -157,8 +183,10 @@ if __name__ == "__main__":
         with open(file_path, 'r', encoding='utf-8') as f:
             SERVER_IP = str(f.readline().strip().replace('\n', ''))
             SERVER_PORT = int(f.readline().strip())
-            IP_TYPE = str(f.readline().strip()).lower()
-    except FileNotFoundError:
+            IP_TYPE = str(f.readline().strip()).lower().encode()
+
+    except FileNotFoundError as fe:
+        log_error(fe)
         print('[!] Unable to locate save data!\n')
         SERVER_IP = input("Enter server IP (IPv4/IPv6): ")
         SERVER_PORT = input("Enter server port: ")
