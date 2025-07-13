@@ -4,6 +4,7 @@ import socket
 from threading import Thread
 from json import loads, dumps
 from os import getenv, makedirs
+from datetime import datetime
 from os.path import exists as os_path_exists
 from schedule import every, run_pending
 # ----------------------------------------------------------------------
@@ -33,6 +34,26 @@ def get_appdata_path():
 
     return full_path_data
 
+def log_error(data):
+
+    # Get current time
+    now = datetime.now()
+    timestamp = now.strftime("%d-%m-%Y %H:%M:%S")
+    log_path = str(get_appdata_path() + '\\server.log')
+
+    data = str(timestamp + ' ' + data + '\n')
+
+    try:
+        with open(log_path, 'a') as f:
+            f.write(data)
+
+    except FileNotFoundError:
+        with open(log_path, 'w') as f:
+            f.write(data)
+
+    except PermissionError:
+        print(f'[!] Insufficient permissions!\nUnable to log data at {log_path}!')
+
 # Parses and sends the JSON file to the client.
 def send_json(client, file_path):
     global end_marker
@@ -47,6 +68,8 @@ def send_json(client, file_path):
     except Exception as e:
         print("WARNING! INVALID JSON")
         print(e)
+        log_error(e)
+
         return
 
     data = loads(full_data)
@@ -202,11 +225,15 @@ def process_commands(server, server_data):
 
         try:
             choice = int(choice) - 1
-        except ValueError:
+        except ValueError as ve:
+
             if str(choice).strip().lower().startswith("!help") or str(choice).strip().lower().startswith("help"):
                 print(help_data())
             elif str(choice).strip().lower().startswith("!info"):
                 print(f"SERVER IP: {server_data[0]}\nSERVER PORT: {server_data[1]}\nIP TYPE: {server_data[2]}\nEnd marker: {str(server_data[3])}\n")
+            else:
+                log_error(ve)
+
             continue
 
         if choice == -1:
@@ -236,6 +263,9 @@ def process_commands(server, server_data):
                     except IndexError:
                         file_path_json = get_appdata_path() + '\\lessons.json'
 
+                    except Exception as er:
+                        log_error(er)
+
                     command_part = command.split()[0]
                     client.sendall(str(command_part).encode())
                     thread = Thread(target=send_json, args=(client, file_path_json))
@@ -251,8 +281,12 @@ def process_commands(server, server_data):
             if command.strip().lower().startswith("!sendjson"):
                 try:
                     file_path_json = command.strip().split()[1]
+
                 except IndexError:
                     file_path_json = get_appdata_path() + '\\lessons.json'
+
+                except Exception as er:
+                    log_error(er)
 
                 command_part = command.split()[0]
                 clients[target_addr].sendall(str(command_part).encode())
@@ -298,15 +332,20 @@ if __name__ == "__main__":
             SERVER_PORT = int(f.readline().strip().replace(' ', ''))
             try:
                 IP_TYPE = str(f.readline().strip()).lower()
-            except Exception:
+
+            except Exception as e:
                 print('[!] Unable to extract IP type (IPv4/IPv6), defaulting to IPv4...')
                 IP_TYPE = "ipv4"
+                log_error(e)
+
             try:
                 end_marker = bytes(f.readline().strip())
-            except Exception:
+            except Exception as e:
+                log_error(e)
                 end_marker = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"
 
-    except FileNotFoundError:
+    except FileNotFoundError as fe:
+        log_error(fe)
         print('[!] Unable to locate save data!\n')
         SERVER_IP = str(input("Enter server IP (local): "))
         SERVER_PORT = int(input("Enter server port: "))
@@ -314,8 +353,12 @@ if __name__ == "__main__":
         end_marker = input("Enter the end marker if desired (Must match with client. Enter nothing if unsure): ")
         try:
             end_marker = bytes(end_marker)
-        except Exception:
+
+        except Exception as e:
             end_marker = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"
+            log_error(e)
+
+
         with open(full_path + '\\connect-data.txt', 'w', encoding='utf-8') as f:
             f.write(f"{SERVER_IP}\n{SERVER_PORT}\n{IP_TYPE}\n{end_marker}")
 
