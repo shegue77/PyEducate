@@ -44,7 +44,7 @@ class Editor(QMainWindow):
         timestamp = now.strftime("%d-%m-%Y %H:%M:%S")
         log_path = str(self.get_appdata_path() + '\\lesson-editor.log')
 
-        data = str(timestamp + ' ' + data + '\n')
+        data = str(timestamp + ' ' + str(data) + '\n')
 
         try:
             with open(log_path, 'a') as f:
@@ -101,6 +101,7 @@ class Editor(QMainWindow):
             content = str(self.content_text.toPlainText().replace('\n', '\\n'))
             question = '"' + str(self.quiz_question_text.text()) + '"'
             answer = '"' + str(self.quiz_answer_text.toPlainText().replace('\n', '\\n')) + '"'
+            points = str(self.point_amount.text())
         else:
             pass
 
@@ -112,6 +113,7 @@ class Editor(QMainWindow):
             try:
                 with open(file_path, 'r') as f:
                     data = load(f)
+
             except FileNotFoundError as fe:
                 self.log_error(fe)
                 return
@@ -125,7 +127,7 @@ class Editor(QMainWindow):
 
         read_json()
 
-        new_lesson = '{"id": ' + str(self.id_input) + ', "title": "' + title + '", "description": "' + mild_desc + '", "image": "' + image + '", "content": "' + content + '", "quiz": ' + quiz + '}'
+        new_lesson = '{"id": ' + str(self.id_input) + ', "title": "' + title + '", "description": "' + mild_desc + '", "image": "' + image + '", "content": "' + content + '", "points": ' + points + ', "quiz": ' + quiz + '}'
 
         if isinstance(new_lesson, dict):
             try:
@@ -177,11 +179,18 @@ class Editor(QMainWindow):
                 content = correct_lesson['content']
 
                 try:
+                    points = correct_lesson['points']
+
+                except Exception as e:
+                    self.log_error(e)
+                    points = '0'
+
+                try:
                     for quiz in correct_lesson['quiz']:  # Loop over the quiz list
                         print(quiz['question'])
                         options_text = str(quiz['question'])
                         answer = str(quiz['answer'])
-                        return title, image_path, description, content, options_text, answer
+                        return title, image_path, description, content, options_text, answer, points
 
                 except Exception as e:
                     self.log_error(e)
@@ -230,7 +239,7 @@ class Editor(QMainWindow):
         delete = QPushButton('Delete Lesson', self)
         list_l = QPushButton('List Lessons', self)
         lesson_info =  QPushButton('Lesson Information', self)
-        settings = QPushButton('Settings', self)
+        settings = QPushButton('Settings (Coming Soon)', self)
         settings.setDisabled(True)
 
         title.setObjectName('title')
@@ -478,13 +487,12 @@ class Editor(QMainWindow):
 
     def _initui_lesson(self):
         def add_json():
-            all_texts = (self.title_name, self.description_text, self.image_path, self.content_text, self.quiz_question_text, self.quiz_answer_text, self.image_path)
+            all_texts = (self.title_name, self.description_text, self.image_path, self.point_amount, self.content_text, self.quiz_question_text, self.quiz_answer_text, self.image_path)
             required_texts = [self.title_name.text(), self.description_text.text(), self.content_text.toPlainText(), self.quiz_question_text.text(), self.quiz_answer_text.toPlainText()]
             for text in required_texts:
                 if str(text) == '':
                     return
 
-            required_texts.append(self.image_path.text())
             for part in all_texts:
                 try:
                     part.setText(str(part.text()).replace('"', "'"))
@@ -504,7 +512,11 @@ class Editor(QMainWindow):
         self.title_name.setPlaceholderText('Enter Title (Required)')
 
         self.image_path = QLineEdit(self)
-        self.image_path.setPlaceholderText('Enter Image Path (Optional)')
+        self.image_path.setPlaceholderText('Enter Image Path (Optional, work in progress)')
+        self.image_path.setDisabled(True)
+
+        self.point_amount = QLineEdit(self)
+        self.point_amount.setPlaceholderText('Enter amount of points (Optional, given to user based on attempts)')
 
         self.description_text = QLineEdit(self)
         self.description_text.setPlaceholderText('Quick Description (Required)')
@@ -524,6 +536,7 @@ class Editor(QMainWindow):
         layout.addWidget(title_title, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(self.title_name)
         layout.addWidget(self.image_path)
+        layout.addWidget(self.point_amount)
         layout.addWidget(self.description_text)
         layout.addWidget(self.content_text)
         layout.addWidget(self.quiz_question_text)
@@ -585,6 +598,7 @@ class Editor(QMainWindow):
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     data = load(f)
+
                 for lesson in data['lessons']:
                     if str(lesson['id']) == str(self.id_name.text()):
                         is_valid_id = True
@@ -675,8 +689,9 @@ class Editor(QMainWindow):
         self.title_name.setText(str(text[0]))
 
         self.image_path = QLineEdit(self)
-        self.image_path.setPlaceholderText('Edit Image Path')
+        self.image_path.setPlaceholderText('Edit Image Path (Coming Soon)')
         self.image_path.setText(str(text[1]))
+        self.image_path.setDisabled(True)
 
         self.description_text = QLineEdit(self)
         self.description_text.setPlaceholderText('Edit Quick Description')
@@ -693,12 +708,17 @@ class Editor(QMainWindow):
         self.quiz_answer_text = QPlainTextEdit(self)
         self.quiz_answer_text.setPlainText(str(text[5]))
 
+        self.point_amount = QLineEdit(self)
+        self.point_amount.setPlaceholderText('Edit max points')
+        self.point_amount.setText(str(text[6]))
+
         submit_data = QPushButton('Submit Data', self)
         go_back_edit = QPushButton('Main Menu', self)
 
         layout.addWidget(title_title)
         layout.addWidget(self.title_name)
         layout.addWidget(self.image_path)
+        layout.addWidget(self.point_amount)
         layout.addWidget(self.description_text)
         layout.addWidget(self.content_text)
         layout.addWidget(self.quiz_question_text)
