@@ -2,7 +2,7 @@
 
 # ---------------------------[ DEPENDENCIES ]---------------------------
 import socket
-from os import getenv, makedirs
+from os import getenv, makedirs, getlogin
 from os.path import exists as os_path_exists
 from json import load, loads, dump, JSONDecodeError
 from datetime import datetime
@@ -40,7 +40,7 @@ def log_error(data):
     timestamp = now.strftime("%d-%m-%Y %H:%M:%S")
     log_path = str(get_appdata_path() + '\\client-module.log')
 
-    data = str(timestamp + ' ' + data + '\n')
+    data = str(timestamp + ' ' + str(data) + '\n')
 
     try:
         with open(log_path, 'a') as f:
@@ -91,11 +91,14 @@ def get_json_file(new_lessons):
 
 
 # Downloads the lesson from the server (host).
-def download_file(client_r):
+def download_file(client_r, mode='json'):
 
     print("Listening for data...")
 
-    file_path = get_appdata_path() + '\\temp-lessons.json'
+    if mode == 'json':
+        file_path = get_appdata_path() + '\\temp-lessons.json'
+    else:
+        file_path = get_appdata_path() + '\\temp-leaderboards.json'
 
     file = open(file_path, 'wb')
     file_bytes = b""
@@ -125,8 +128,21 @@ def download_file(client_r):
 
     lesson = open(file_path, 'r', encoding='utf-8').read()
     print(lesson)
+    print(mode)
 
-    get_json_file(lesson)
+    if mode == 'json':
+        get_json_file(lesson)
+
+    else:
+        try:
+            lesson = loads(lesson)
+        except JSONDecodeError as e:
+            log_error(e)
+            print("❌ Invalid JSON string:", e)
+            return None
+
+        with open(str(get_appdata_path() + '\\leaderboards.json'), 'w') as f:
+            dump(lesson, f)
 
 
 # Connects to the server (host).
@@ -141,18 +157,21 @@ def start_client(server_ip, server_port, server_type='ipv4'):
 
     while True:
         print('e')
-        command = client.recv(32).decode()
+        command = client.recv(32).decode().strip().lower()
         print(f"[Received Command] {command}")
 
-        if command.strip().lower() == "!disconnect":
+        if command == "!disconnect":
             break
 
-        if command.lower() == "!sendjson":
+        elif command == "!sendjson":
             print('a')
             download_file(client)
             continue
 
-        if command.lower() == "!getip":
+        elif command == "!updateboard":
+            download_file(client, 'board')
+
+        elif command == "!getip":
             try:
                 response = get('https://api64.ipify.org?format=json').json()
                 client.sendall(response['ip'].encode())
@@ -162,6 +181,53 @@ def start_client(server_ip, server_port, server_type='ipv4'):
                 log_error(e)
                 client.sendall('Error retrieving public IP address!'.encode())
             continue
+
+        elif command == "!gethostname":
+            try:
+                name_host = str(socket.gethostname())
+                client.sendall(name_host.encode())
+
+            except Exception as e:
+                print(e)
+                log_error(e)
+                client.sendall('Error getting hostname!'.encode())
+            continue
+
+        elif command == "!getusername":
+            try:
+                username_data = '!getusername ' + str(getlogin())
+                client.sendall(username_data.encode())
+
+            except Exception as e:
+                log_error(e)
+                username_data = '!getusername ' + str(getenv('username'))
+                client.sendall(username_data.encode())
+            continue
+
+        elif command == "!getstats":
+            stat_path = str(get_appdata_path() + '\\SAVE_DATA')
+            try:
+                with open(stat_path, 'r') as f:
+                    data = f.read().strip().split()
+                    points = int(data[0])
+                    lessons_completed = int(data[1])
+
+            except (FileNotFoundError, PermissionError, IndexError, TypeError, ValueError) as ve:
+                log_error(ve)
+                points = '0'
+                lessons_completed = '0'
+
+            full_data = f'{str(points)} {str(lessons_completed)}'
+
+            try:
+                username_data = '!getstats ' + str(full_data)
+                client.sendall(username_data.encode())
+
+            except Exception as e:
+                log_error(e)
+
+            continue
+
 
     client.close()
 
@@ -194,6 +260,9 @@ if __name__ == "__main__":
 
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(f"{SERVER_IP}\n{SERVER_PORT}\n{IP_TYPE}")
+
+    except Exception as e:
+        log_error(e)
 
 
     start_client(SERVER_IP, SERVER_PORT, IP_TYPE.lower())

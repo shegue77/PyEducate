@@ -1,13 +1,18 @@
-import sys
-from json import load as json_load, dump
+
+# ---------------------------[ DEPENDENCIES ]---------------------------
+from sys import argv as sys_argv, exit as sys_exit
+from json import load as json_load, dump, JSONDecodeError
 from threading import Thread
 from time import sleep
 from os import getenv, makedirs
 from os.path import exists as os_path_exists
+from datetime import datetime
 
 import connectmod
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QPlainTextEdit, QVBoxLayout, QPushButton, QLineEdit, QHBoxLayout
-from PySide6.QtGui import Qt, QPixmap, QColor
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QPlainTextEdit, QVBoxLayout, QPushButton, QLineEdit, QHBoxLayout, QMessageBox, QStyle, QSizePolicy
+from PySide6.QtGui import Qt
+from PySide6.QtCore import QSize
+# ----------------------------------------------------------------------
 
 def get_appdata_path():
     path_to_appdata = getenv('APPDATA')
@@ -43,16 +48,17 @@ def attempt_connect_loop(SERVER_IP, SERVER_PORT, IP_TYPE):
 
 try:
     with open(f'{get_appdata_path()}\\connect-data.txt', 'r', encoding='utf-8') as f:
-        SERVER_IP = str(f.readline().replace('\n', ''))
-        SERVER_PORT = int(f.readline().replace('\n', ''))
-        IP_TYPE = str(f.readline().replace('\n', ''))
+        data = f.read().strip().split()
+        SERVER_IP = str(data[0])
+        SERVER_PORT = int(data[1])
+        IP_TYPE = str(data[2])
 
     thread = Thread(target=attempt_connect_loop, args=(SERVER_IP, SERVER_PORT, IP_TYPE), daemon=True).start()
 
 except FileNotFoundError as fe:
     print(f'[!!] Connect data not found!\n{fe}')
 
-except ValueError as ve:
+except (ValueError, TypeError, IndexError) as ve:
     print(f'[!!] Corrupted data!\n{ve}')
     with open(f'{get_appdata_path()}\\connect-data.txt', 'w', encoding='utf-8') as f:
         f.write('')
@@ -65,6 +71,10 @@ class MainWindow(QMainWindow):
         self.data = None
         self.page = 1
         self.points = 0
+        self.lessons_completed = 0
+        self.lesson_attempt = 1
+        self.leaderboard_page = 1
+        self.leaderboard_type = 'points'
 
         self.reload_json()
         self.search()
@@ -75,6 +85,13 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
         event.accept()
+
+    def save_data(self):
+        file_path = str(get_appdata_path() + '\\SAVE_DATA')
+        with open(file_path, 'w') as f:
+            data = f'{str(self.points)} {str(self.lessons_completed)}'
+            f.write(data)
+        print('Point data saved successfully')
 
     @staticmethod
     def get_appdata_path():
@@ -92,13 +109,113 @@ class MainWindow(QMainWindow):
 
         return full_path_data
 
+    @staticmethod
+    def log_error(data):
+
+        # Get current time
+        now = datetime.now()
+        timestamp = now.strftime("%d-%m-%Y %H:%M:%S")
+        log_path = str(get_appdata_path() + '\\client.log')
+
+        data = str(timestamp + ' ' + str(data) + '\n')
+
+        try:
+            with open(log_path, 'a') as f:
+                f.write(data)
+
+        except FileNotFoundError:
+            with open(log_path, 'w') as f:
+                f.write(data)
+
+        except PermissionError:
+            print(f'[!] Insufficient permissions!\nUnable to log data at {log_path}!')
+
+    def show_message_box(self, mode, title, text):
+
+        if mode == 'warning':
+            msg_box = QMessageBox()
+            msg_box.setWindowTitle(str(title))
+            msg_box.setText(str(text))
+            msg_box.setContentsMargins(20, 20, 20, 20)
+            msg_box.setIcon(QMessageBox.Warning)
+            msg_box.setDefaultButton(QMessageBox.Ok)
+            msg_box.setStyleSheet("""
+                        QWidget{
+                            background-color: white;
+                        }
+                        QLabel{
+                            color: black;
+                        }
+                        QPushButton{
+                            font-size: 20px;
+                            border: 2px solid;
+                            border-radius: 5px;
+                            color: black;
+                            font-weight: bold;
+                        }
+                    """)
+
+            msg_box.exec()
+
+        elif mode == 'error':
+            msg_box = QMessageBox()
+            msg_box.setWindowTitle(str(title))
+            msg_box.setText(str(text))
+            msg_box.setContentsMargins(20, 20, 20, 20)
+            msg_box.setIcon(QMessageBox.Critical)
+            msg_box.setDefaultButton(QMessageBox.Ok)
+            msg_box.setStyleSheet("""
+                                    QWidget{
+                                        background-color: white;
+                                    }
+                                    QLabel{
+                                        color: black;
+                                    }
+                                    QPushButton{
+                                        font-size: 20px;
+                                        border: 2px solid;
+                                        border-radius: 5px;
+                                        color: black;
+                                        font-weight: bold;
+                                    }
+                                """)
+
+            msg_box.exec()
+
+        elif mode == 'info':
+            msg_box = QMessageBox()
+            msg_box.setWindowTitle(str(title))
+            msg_box.setText(str(text))
+            msg_box.setContentsMargins(20, 20, 20, 20)
+            msg_box.setIcon(QMessageBox.Information)
+            msg_box.setDefaultButton(QMessageBox.Ok)
+            msg_box.setStyleSheet("""
+                                    QWidget{
+                                        background-color: white;
+                                    }
+                                    QLabel{
+                                        color: black;
+                                    }
+                                    QPushButton{
+                                        font-size: 20px;
+                                        border: 2px solid;
+                                        border-radius: 5px;
+                                        color: black;
+                                        font-weight: bold;
+                                    }
+                                """)
+
+            msg_box.exec()
+
     def reload_json(self):
         file_path = f'{get_appdata_path()}\\lessons.json'
         try:
             with open(file_path, 'r', encoding="utf-8") as file:
                 self.data = json_load(file)
-                print('reloaded')
+                print('reloaded lessons.json')
+
         except FileNotFoundError as fe:
+            self.log_error(fe)
             print(fe)
             print()
             makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
@@ -107,6 +224,12 @@ class MainWindow(QMainWindow):
                     data = {"lessons":[]}
                     dump(data, file)
                     print('reloaded')
+
+        except JSONDecodeError:
+            with open(file_path, 'w', encoding="utf-8") as file:
+                data = {"lessons": []}
+                dump(data, file)
+                print('reloaded')
 
     def submit_id_data(self, id_n):
 
@@ -124,6 +247,7 @@ class MainWindow(QMainWindow):
                     print('reloaded')
 
             except FileNotFoundError as fe:
+                self.log_error(fe)
                 print(fe)
                 print()
                 makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
@@ -148,6 +272,7 @@ class MainWindow(QMainWindow):
                     print('reloaded')
 
             except FileNotFoundError as fe:
+                self.log_error(fe)
                 print(fe)
                 print()
                 makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
@@ -156,14 +281,19 @@ class MainWindow(QMainWindow):
                         data = {"lessons":[]}
                         dump(data, file)
 
-    @staticmethod
-    def get_lessons_for_page(page_number):
+            except JSONDecodeError:
+                with open(file_path, 'w', encoding="utf-8") as file:
+                    data = {"lessons": []}
+                    dump(data, file)
+
+    def get_lessons_for_page(self, page_number):
         file_path = f'{get_appdata_path()}\\lessons.json'
         try:
             with open(file_path, 'r', encoding="utf-8") as f:
                 data = json_load(f)
 
         except FileNotFoundError as fe:
+            self.log_error(fe)
             print(fe)
             print()
             makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
@@ -173,19 +303,26 @@ class MainWindow(QMainWindow):
                     dump(data, file)
             return []
 
-        items_per_page = 4
+        except JSONDecodeError:
+            with open(file_path, 'w', encoding="utf-8") as file:
+                data = {"lessons": []}
+                dump(data, file)
+
+        items_per_page = 8
         start_index = (page_number - 1) * items_per_page
         end_index = start_index + items_per_page
         ids = []
         try:
             for lesson in data["lessons"][start_index:end_index]:
                 ids.append(lesson["id"])
-        except TypeError:
+
+        except IndexError as ie:
+            self.log_error(ie)
             return [None]
+
         return ids
 
-    @staticmethod
-    def list_lesson_ids():
+    def list_lesson_ids(self):
         file_path = f'{get_appdata_path()}\\lessons.json'
         def create_json():
             with open(file_path, 'w', encoding="utf-8") as file:
@@ -197,18 +334,23 @@ class MainWindow(QMainWindow):
                 data = json_load(f)
 
         except FileNotFoundError as fe:
+            self.log_error(fe)
             print(fe)
             print()
-            #makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
             create_json()
             return 1
+
+        except JSONDecodeError:
+            with open(file_path, 'w', encoding="utf-8") as file:
+                data = {"lessons": []}
+                dump(data, file)
 
         whole_data = []
         try:
             print(data["lessons"])
-        except TypeError:
+        except (TypeError, IndexError):
             return None
-        pages = (len(data["lessons"]) + 4 - 1) // 4
+        pages = (len(data["lessons"]) + 8 - 1) // 8
         for lesson in data["lessons"]:
             whole_data.append(int(lesson["id"]))
 
@@ -230,18 +372,54 @@ class MainWindow(QMainWindow):
                     dump(data, file)
                 return None
 
+        except JSONDecodeError:
+            with open(file_path, 'w', encoding="utf-8") as file:
+                data = {"lessons": []}
+                dump(data, file)
+
         for lesson in data['lessons']:
             try:
                 if int(lesson['id']) == int(lesson_id):
+                    try:
+                        is_complete = str(lesson['completed'])
+                    except Exception as e:
+                        is_complete = 'False'
+                        print(e)
+
                     for quiz in lesson['quiz']:  # Loop over the quiz list
                         print(quiz['question'])
 
-                        return str(lesson['id']), str(lesson['title']), str(lesson['image']), str(lesson['description']), str(lesson['content']), str(quiz['question']), str(quiz['answer'])
+                        return str(lesson['id']), str(lesson['title']), str(lesson['image']), str(lesson['description']), str(lesson['content']), str(quiz['question']), str(quiz['answer']), str(is_complete)
+
             except Exception as e:
                 print(e)
                 return None
 
+    def set_completed(self):
+        pass
+
     def search(self):
+        save_data_path = str(get_appdata_path() + '\\SAVE_DATA')
+        try:
+            with open(save_data_path, 'r') as f:
+                save_data = f.read().strip().split()
+                self.points = int(save_data[0])
+                self.lessons_completed = int(save_data[1])
+
+        except FileNotFoundError as fe:
+            self.log_error(fe)
+            with open(save_data_path, 'w') as f:
+                f.write('0 0')
+
+        except IndexError as ie:
+            self.points = 0
+            self.lessons_completed = 0
+            self.log_error(ie)
+
+        def reload_ui():
+            self.search()
+            self.show_message_box('info', 'Lesson Reload', 'Successfully reloaded lessons.')
+
         central = QWidget()
         self.setCentralWidget(central)
         total_pages = self.list_lesson_ids()
@@ -257,7 +435,7 @@ class MainWindow(QMainWindow):
                 self.page = 1
                 return None
 
-            return [None, None, None, None]
+            return [None, None, None, None, None, None, None, None]
 
         while True:
             result = setup_page()
@@ -283,108 +461,158 @@ class MainWindow(QMainWindow):
 
         all_layouts = QVBoxLayout(self)
         top_layout = QVBoxLayout(self)
+        second_top_layout = QHBoxLayout(self)
         main_layout = QHBoxLayout(self)
         left_layout = QVBoxLayout(self)
+        second_left_layout = QVBoxLayout(self)
+        second_right_layout = QVBoxLayout(self)
         right_layout = QVBoxLayout(self)
+        page_layout = QHBoxLayout(self)
         bottom_layout = QVBoxLayout(self)
 
-        search_bar = QLineEdit(self)
-        search_bar.setPlaceholderText("Enter lesson title")
-        search_bar.setDisabled(True)
+        title_label = QLabel('PyEducate', self)
+        title_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        top_layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignHCenter)
 
-        submit_search = QPushButton('Search', self)
-        submit_search.setDisabled(True)
+        reload_lessons = QPushButton('Reload lessons 🔄️', self)
+        second_top_layout.addWidget(reload_lessons)
 
-        reload_lessons = QPushButton('Reload lessons', self)
-
-        top_layout.addWidget(search_bar)
-        top_layout.addWidget(submit_search)
-        top_layout.addWidget(reload_lessons)
+        show_leaderboard = QPushButton('Leaderboard 🏆', self)
+        second_top_layout.addWidget(show_leaderboard)
 
         while True:
-            if len(passed_lessons) < 4:
+            if len(passed_lessons) < 8:
                 passed_lessons.append(None)
             else:
                 break
 
         for idx, lesson in enumerate(passed_lessons):
-            image = QLabel()
 
             if lesson is not None:
                 data = self.find_lesson(lesson)
                 print(data[1])
-                text = QLabel(f"{data[1]}\n{data[3]}\nID: {data[0]}")
+                try:
+                    text = QLabel(f"{data[1]}\n{data[3]}\nID: {data[0]}\nCompleted: {data[7]}")
 
-                if data[2] != 'False':
-                    try:
-                        pixmap = QPixmap(f'{self.get_appdata_path()}\\images\\{str(data[2])}')
-                        image.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-                        image.setMaximumSize(120, 120)
-                        image.setScaledContents(True)
-                    except Exception as e:
-                        print(e)
-                        makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
-                        pixmap = QPixmap(120, 120)
-                        pixmap.fill(QColor("white"))
-                    finally:
-                        image.setPixmap(pixmap)
+                except TypeError as te:
+                    self.log_error(te)
+                    print(te)
+                    return None
 
-                else:
-                    pass
+                text.setWordWrap(True)
+
             else:
-                text = QLabel("Placeholder\n????????\nID: ??")
+                text = QLabel("Placeholder\nUnknown Description\nID: ??\nCompleted: N/A")
+                data = ''
 
-            if idx == 0 or idx == 1:
-                left_layout.addWidget(image)
+            if idx == 0:
                 left_layout.addWidget(text)
-                if idx == 0:
-                    button_1 = QPushButton('Start lesson', self)
-                    left_layout.addWidget(button_1)
+                button_1 = QPushButton('Start lesson', self)
+                left_layout.addWidget(button_1)
 
-                    if passed_lessons[idx] is None:
-                        button_1.setDisabled(True)
-                    else:
-                        button_1.setDisabled(False)
+                if passed_lessons[idx] is None or data[7] == 'True':
+                    button_1.setDisabled(True)
                 else:
-                    button_2 = QPushButton('Start lesson', self)
-                    left_layout.addWidget(button_2)
+                    button_1.setDisabled(False)
 
-                    if passed_lessons[idx] is None:
-                        button_2.setDisabled(True)
-                    else:
-                        button_2.setDisabled(False)
-            else:
-                right_layout.addWidget(image)
+            elif idx == 1:
+                left_layout.addWidget(text)
+                button_2 = QPushButton('Start lesson', self)
+                left_layout.addWidget(button_2)
+
+                if passed_lessons[idx] is None or data[7] == 'True':
+                    button_2.setDisabled(True)
+                else:
+                    button_2.setDisabled(False)
+
+            elif idx == 2:
+                second_left_layout.addWidget(text)
+                button_3 = QPushButton('Start lesson', self)
+                second_left_layout.addWidget(button_3)
+
+                if passed_lessons[idx] is None or data[7] == 'True':
+                    button_3.setDisabled(True)
+                else:
+                    button_3.setDisabled(False)
+
+            elif idx == 3:
+                second_left_layout.addWidget(text)
+                button_4 = QPushButton('Start lesson', self)
+                second_left_layout.addWidget(button_4)
+
+                if passed_lessons[idx] is None or data[7] == 'True':
+                    button_4.setDisabled(True)
+                else:
+                    button_4.setDisabled(False)
+
+            elif idx == 4:
                 right_layout.addWidget(text)
-                if idx == 2:
-                    button_3 = QPushButton('Start lesson', self)
-                    right_layout.addWidget(button_3)
-                    if passed_lessons[idx] is None:
-                        button_3.setDisabled(True)
-                    else:
-                        button_3.setDisabled(False)
+                button_5 = QPushButton('Start lesson', self)
+                right_layout.addWidget(button_5)
+
+                if passed_lessons[idx] is None or data[7] == 'True':
+                    button_5.setDisabled(True)
                 else:
-                    button_4 = QPushButton('Start lesson', self)
-                    right_layout.addWidget(button_4)
-                    if passed_lessons[idx] is None:
-                        button_4.setDisabled(True)
-                    else:
-                        button_4.setDisabled(False)
+                    button_5.setDisabled(False)
+
+            elif idx == 5:
+                right_layout.addWidget(text)
+                button_6 = QPushButton('Start lesson', self)
+                right_layout.addWidget(button_6)
+
+                if passed_lessons[idx] is None or data[7] == 'True':
+                    button_6.setDisabled(True)
+                else:
+                    button_6.setDisabled(False)
+
+            elif idx == 6:
+                second_right_layout.addWidget(text)
+                button_7 = QPushButton('Start lesson', self)
+                second_right_layout.addWidget(button_7)
+
+                if passed_lessons[idx] is None or data[7] == 'True':
+                    button_7.setDisabled(True)
+                else:
+                    button_7.setDisabled(False)
+
+            elif idx == 7:
+                second_right_layout.addWidget(text)
+                button_8 = QPushButton('Start lesson', self)
+                second_right_layout.addWidget(button_8)
+
+                if passed_lessons[idx] is None or data[7] == 'True':
+                    button_8.setDisabled(True)
+                else:
+                    button_8.setDisabled(False)
+
 
         if total_pages is None or total_pages == 0:
             total_pages = 1
 
         total_pages_text = QLabel(f"Page: {self.page}/{total_pages}", self)
-        bottom_layout.addWidget(total_pages_text)
+        total_pages_text.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        bottom_layout.addWidget(total_pages_text, stretch=1)
 
-        previous_page = QPushButton('Previous Page', self)
-        bottom_layout.addWidget(previous_page)
+        previous_page = QPushButton(self)
 
-        next_page = QPushButton('Next Page', self)
-        bottom_layout.addWidget(next_page)
+        next_page = QPushButton(self)
 
-        settings = QPushButton('Settings', self)
+        settings = QPushButton('⚙️ Settings', self)
         bottom_layout.addWidget(settings)
+
+        icon_size = QSize(48, 48)
+
+        left_icon = self.style().standardIcon(QStyle.SP_ArrowLeft)
+        previous_page.setIcon(left_icon)
+
+        right_icon = self.style().standardIcon(QStyle.SP_ArrowRight)
+        next_page.setIcon(right_icon)
+
+        previous_page.setIconSize(icon_size)
+        next_page.setIconSize(icon_size)
+
+        page_layout.addWidget(previous_page)
+        page_layout.addWidget(next_page)
 
         if self.page >= total_pages:
             next_page.setDisabled(True)
@@ -397,11 +625,17 @@ class MainWindow(QMainWindow):
             previous_page.setDisabled(False)
 
         main_layout.addLayout(left_layout)
+        main_layout.addLayout(second_left_layout)
         main_layout.addLayout(right_layout)
+        main_layout.addLayout(second_right_layout)
 
         all_layouts.addLayout(top_layout)
+        all_layouts.addLayout(second_top_layout)
         all_layouts.addLayout(main_layout)
+        all_layouts.addLayout(page_layout)
         all_layouts.addLayout(bottom_layout)
+
+        title_label.setObjectName('title')
 
         self.setStyleSheet("""
                     QMainWindow{
@@ -416,19 +650,13 @@ class MainWindow(QMainWindow):
                         font-weight: bold;
                         border: 2px solid;
                         border-radius: 5px;
+                        font-size: 15px;
                     }
                     QLabel#title{
                         font-size: 45px;
-                    }
-                    QLabel#desc{
-                        font-size: 20px;
-                    }
-                    QLineEdit{
-                        background-color: white;
-                        color: black;
-                        border: 1px solid;
-                        border-radius: 5px;
-                        font-size: 10px;
+                        border: None;
+                        text-decoration: underline;
+                        font-weight: bold;
                     }
                     QPushButton{
                         background-color: hsl(0, 1%, 27%);
@@ -456,13 +684,231 @@ class MainWindow(QMainWindow):
             button_3.clicked.connect(lambda: self.submit_id_data(passed_lessons[2]))
         if passed_lessons[3] is not None:
             button_4.clicked.connect(lambda: self.submit_id_data(passed_lessons[3]))
+        if passed_lessons[4] is not None:
+            button_5.clicked.connect(lambda: self.submit_id_data(passed_lessons[4]))
+        if passed_lessons[5] is not None:
+            button_6.clicked.connect(lambda: self.submit_id_data(passed_lessons[5]))
+        if passed_lessons[6] is not None:
+            button_7.clicked.connect(lambda: self.submit_id_data(passed_lessons[6]))
+        if passed_lessons[7] is not None:
+            button_8.clicked.connect(lambda: self.submit_id_data(passed_lessons[7]))
 
         previous_page.clicked.connect(previous_page_set)
         next_page.clicked.connect(lambda: next_page_set(total_pages))
-        reload_lessons.clicked.connect(self.search)
+        reload_lessons.clicked.connect(reload_ui)
         settings.clicked.connect(self._init_settings)
+        show_leaderboard.clicked.connect(self.init_leaderboard)
+
+    def init_leaderboard(self):
+        def read_leaderboard(filename):
+            if not os_path_exists(filename):
+                # Create empty file if it doesn't exist
+                with open(filename, 'w') as f:
+                    dump([], f)
+                return []
+
+            with open(filename, 'r') as f:
+                return json_load(f)
+
+        def get_top_n_users(filename, type_n='points', n=10):
+            leaderboard = read_leaderboard(filename)
+            # Sort by points descending
+            sorted_leaderboard = sorted(leaderboard, key=lambda x: x[type_n], reverse=True)
+            return sorted_leaderboard[:n]
+
+        def get_total_pages():
+            file_path = str(get_appdata_path() + '\\leaderboards.json')
+
+            def create_json():
+                with open(file_path, 'w', encoding="utf-8") as file:
+                    json_data = []
+                    dump(json_data, file, indent=4)
+
+            try:
+                with open(file_path, 'r', encoding="utf-8") as f:
+                    data = json_load(f)
+
+            except FileNotFoundError as fe:
+                print(fe)
+                print()
+                create_json()
+
+            except JSONDecodeError:
+                with open(file_path, 'w', encoding="utf-8") as file:
+                    data = []
+                    dump(data, file)
+
+            leaderboard_items = []
+
+            for part in data:
+                for i in part.keys():
+                    if i != 'username':
+                        leaderboard_items.append(i)
+                break
+
+            print(len(leaderboard_items))
+            return leaderboard_items, len(leaderboard_items)
+
+        def next_page_set(total_page: int):
+            print(total_page)
+            print(self.leaderboard_page >= total_page)
+            if self.leaderboard_page >= total_page:
+                return None
+
+            self.leaderboard_page += 1
+            self.init_leaderboard()
+
+        def previous_page_set():
+            if self.leaderboard_page <= 1:
+                return None
+
+            self.leaderboard_page -= 1
+            self.init_leaderboard()
+
+        def get_board_type():
+            board_types = get_total_pages()[0]
+            self.leaderboard_type = str(board_types[self.leaderboard_page - 1])
+
+        total_pages = int(get_total_pages()[1])
+        get_board_type()
+
+        badge_for_ranking = {
+            1:'🏆',
+            2:'🥇',
+            3:'🥈',
+            4:'🥉',
+            5:'🎖️',
+        }
+
+        all_layouts = QVBoxLayout()
+        title_layout = QVBoxLayout()
+        layout = QVBoxLayout()
+        bottom_layout = QVBoxLayout()
+        arrow_layout = QHBoxLayout()
+        central = QWidget()
+        self.setCentralWidget(central)
+
+        title = QLabel('Leaderboard 🏆')
+        title.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        title_layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
+        subtitle = QLabel(f'Top 10 by {str(self.leaderboard_type).replace('_', ' ').lower().capitalize()}')
+        subtitle.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        title_layout.addWidget(subtitle, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        data = get_top_n_users(str(self.get_appdata_path() + '\\leaderboards.json'), str(self.leaderboard_type), 10)
+
+        for idx, part in enumerate(data, start=1):
+            try:
+                badge = badge_for_ranking[idx]
+            except IndexError:
+                badge = ''
+
+            person = QLabel(f'{badge} {idx}. Username: {part["username"]}  |  {str(self.leaderboard_type).strip().replace('_', ' ').lower().capitalize()}: {part[str(self.leaderboard_type.strip())]:,.2f}')
+            layout.addWidget(person)
+
+        total_pages_text = QLabel(f"Page: {self.leaderboard_page}/{total_pages}", self)
+        total_pages_text.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        bottom_layout.addWidget(total_pages_text, stretch=1)
+
+        previous_page = QPushButton()
+        next_page = QPushButton()
+
+        icon_size = QSize(48, 48)
+
+        left_icon = self.style().standardIcon(QStyle.SP_ArrowLeft)
+        previous_page.setIcon(left_icon)
+
+        right_icon = self.style().standardIcon(QStyle.SP_ArrowRight)
+        next_page.setIcon(right_icon)
+
+        previous_page.setIconSize(icon_size)
+        next_page.setIconSize(icon_size)
+
+        go_back = QPushButton('Go Back ↩️')
+        bottom_layout.addWidget(go_back)
+
+        arrow_layout.addWidget(previous_page)
+        arrow_layout.addWidget(next_page)
+
+        all_layouts.addLayout(title_layout)
+        all_layouts.addLayout(layout)
+        all_layouts.addLayout(arrow_layout)
+        all_layouts.addLayout(bottom_layout)
+
+        central.setLayout(all_layouts)
+
+        if self.leaderboard_page >= total_pages:
+            next_page.setDisabled(True)
+        else:
+            next_page.setDisabled(False)
+
+        if self.leaderboard_page <= 1:
+            previous_page.setDisabled(True)
+        else:
+            previous_page.setDisabled(False)
+
+
+        title.setObjectName('title')
+        subtitle.setObjectName('subtitle')
+
+        self.setStyleSheet("""
+                            QMainWindow{
+                                background-color: white;
+                            }
+                            QWidget#central_widget{
+                                border: 2px solid;
+                                border-radius: 5px;
+                            }
+                            QLabel{
+                                color: black;
+                                font-weight: bold;
+                                border: None;
+                                border-radius: 5px;
+                                font-size: 15px;
+                                background-color: hsl(0, 1%, 87%);
+                            }
+                            QLabel#title{
+                                font-size: 45px;
+                                border: None;
+                                text-decoration: underline;
+                                font-weight: bold;
+                                background-color: white;
+                            }
+                            QLabel#subtitle{
+                                font-size: 20px;
+                                border: None;
+                                background-color: white;
+                            }
+                            QPushButton{
+                                background-color: hsl(0, 1%, 27%);
+                                color: white;
+                                border: 1px solid;
+                                border-radius: 5px;
+                                font-weight: bold;
+                                font-size: 25px;
+                            }
+                            QPushButton:hover{
+                                background-color: hsl(0, 1%, 47%);
+                                color: white;
+                                border: 1px solid;
+                                border-radius: 5px;
+                            }
+                        """)
+
+        previous_page.clicked.connect(previous_page_set)
+        next_page.clicked.connect(lambda: next_page_set(total_pages))
+        go_back.clicked.connect(self.search)
+
 
     def _init_lesson(self, lesson):
+        def _submit_lesson():
+            try:
+                self.press_button(int(lesson['id']), int(lesson['points']))
+
+            except Exception as e:
+                self.press_button(int(lesson['id']))
+                print(e)
+                self.log_error(e)
 
         options_text = ''
         for quiz in lesson['quiz']:  # Loop over the quiz list
@@ -475,25 +921,6 @@ class MainWindow(QMainWindow):
         title = QLabel(str(lesson['title']), self)
         desc = QLabel(str(lesson['description']), self)
 
-        if str(lesson['image']) != 'False':
-            print('e_')
-            try:
-                image = QLabel()
-                pixmap = QPixmap(f'{get_appdata_path()}\\images\\{str(lesson['image'])}')
-
-                # Get the size of the image
-                image.setMaximumSize(240, 240)
-                image.setScaledContents(True)
-
-                image.setPixmap(pixmap)
-
-            except FileNotFoundError as fe:
-                makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
-                print(fe)
-
-            except Exception as e:
-                print(e)
-
         content = QLabel(str(lesson['content']).replace('\\n', '\n'), self)
         options = QLabel(str(options_text), self)
         self.user_input = QPlainTextEdit(self)
@@ -503,11 +930,6 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout()
         layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(desc, alignment=Qt.AlignmentFlag.AlignHCenter)
-        layout.addStretch(1)
-        try:
-            layout.addWidget(image, alignment=Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
-            pass
 
         layout.addStretch(1)
         layout.addWidget(content, alignment=Qt.AlignmentFlag.AlignLeft)
@@ -522,10 +944,6 @@ class MainWindow(QMainWindow):
         title.setObjectName('title')
         desc.setObjectName('desc')
         content.setObjectName('content')
-        try:
-            image.setObjectName('image')
-        except Exception:
-            pass
 
         self.setStyleSheet("""
             QMainWindow{
@@ -570,21 +988,120 @@ class MainWindow(QMainWindow):
 
         central.setLayout(layout)
 
-        self.submit.clicked.connect(self.press_button)
+        self.submit.clicked.connect(_submit_lesson)
         go_back.clicked.connect(self.search)
 
+    @staticmethod
+    def mark_lesson_finish(lesson_id):
+        file_path = f'{get_appdata_path()}\\lessons.json'
+        try:
+            with open(file_path, 'r', encoding="utf-8") as f:
+                data = json_load(f)
+
+        except FileNotFoundError as fe:
+            print(fe)
+            print()
+            makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
+            if not os_path_exists(file_path):
+                with open(file_path, 'w', encoding="utf-8") as file:
+                    data = {"lessons": []}
+                    dump(data, file)
+                return None
+
+        except JSONDecodeError:
+            with open(file_path, 'w', encoding="utf-8") as file:
+                data = {"lessons": []}
+                dump(data, file)
+
+        for lesson in data['lessons']:
+            try:
+                if int(lesson['id']) == int(lesson_id):
+                    return lesson
+
+            except Exception as e:
+                print(e)
+                return None
+
     def _init_settings(self):
+
         def set_connect_data():
             file_path = get_appdata_path() + '\\connect-data.txt'
             required_texts = (self.server_ip_text, self.server_port_text, self.server_type_text)
             for text in required_texts:
                 if text.text() == '':
+                    self.show_message_box('error', 'Error saving connection data', 'Unable to connect data as not all parts are filled out.')
                     return
 
             with open(file_path, 'w') as file:
-                data = f'{required_texts[0].text()}\n{required_texts[1].text()}\n{required_texts[2].text()}'
+                data = f'{required_texts[0].text().strip()} {required_texts[1].text().strip()} {required_texts[2].text().strip()}'
                 file.write(data)
 
+            self.show_message_box('info', 'Connection data','Successfully saved connection data.\nPlease restart the app for these changes to take effect.')
+
+        def clear_log():
+            file_path = get_appdata_path() + '\\client.log'
+            file_path_2 = get_appdata_path() + '\\client-module.log'
+
+            try:
+                with open(file_path, 'w') as f:
+                    f.write('')
+
+            except (FileNotFoundError, PermissionError) as e:
+                print(e)
+
+            try:
+                with open(file_path_2, 'w') as f:
+                    f.write('')
+
+            except (FileNotFoundError, PermissionError) as e:
+                print(e)
+
+            print('Cleared log')
+            self.show_message_box('info', 'Cleared log', 'Log was successfully cleared.')
+
+        def delete_lessons():
+            file_path = get_appdata_path() + '\\lessons.json'
+
+            try:
+                with open(file_path, 'w') as f:
+                    f.write('')
+
+                self.show_message_box('info', 'Lesson deletion', 'All lessons were successfully deleted.')
+                self.log_error('All lessons were successfully deleted.')
+
+            except (FileNotFoundError, PermissionError) as e:
+                self.log_error(e)
+                print(e)
+
+        def delete_all_data():
+            clear_log()
+            delete_lessons()
+            self.lessons_completed = 0
+            self.points = 0
+
+            file_path = get_appdata_path() + '\\connect-data.txt'
+            file_path_2 = get_appdata_path() + '\\SAVE_DATA'
+
+            try:
+                with open(file_path, 'w') as f:
+                    f.write('')
+
+            except (FileNotFoundError, PermissionError) as e:
+                self.log_error(e)
+                print(e)
+                pass
+
+            try:
+                with open(file_path_2, 'w') as f:
+                    f.write('')
+
+            except (FileNotFoundError, PermissionError) as e:
+                self.log_error(e)
+                print(e)
+                pass
+
+            self._init_settings()
+            self.show_message_box('warning', 'Data deletion', 'All data was successfully reset.\nPlease restart the app for these changes to take effect.')
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -593,6 +1110,20 @@ class MainWindow(QMainWindow):
         file_path = get_appdata_path() + '\\connect-data.txt'
 
         title = QLabel('Settings', self)
+        title.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+
+        clear_log_button = QPushButton('Clear Logs ⚠️', self)
+        clear_lessons_button = QPushButton('Delete ALL Lessons 🗑️', self)
+        clear_all_data = QPushButton('Reset ALL data 🚫', self)
+
+        points_earned = QLabel(f'Points: {self.points:,.2f}', self)
+        lessons_completed = QLabel(f"Lessons completed: {self.lessons_completed:,}", self)
+        print(self.points)
+        print(self.lessons_completed)
+
+        points_earned.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        lessons_completed.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+
         self.server_ip_text = QLineEdit(self)
         self.server_ip_text.setPlaceholderText('Enter SERVER IP')
 
@@ -602,26 +1133,37 @@ class MainWindow(QMainWindow):
         self.server_type_text = QLineEdit(self)
         self.server_type_text.setPlaceholderText('Enter IP TYPE (IPv4/IPv6)')
 
-        submit = QPushButton('Submit Data', self)
-        go_back = QPushButton('Go Back', self)
+        submit = QPushButton('Submit Data 💾', self)
+        go_back = QPushButton('Go Back ↩️', self)
 
         try:
             with open(file_path, 'r') as file:
-                self.server_ip_text.setText(file.readline())
-                self.server_port_text.setText(file.readline())
-                self.server_type_text.setText(file.readline())
+                file_data = file.read().split()
+                self.server_ip_text.setText(str(file_data[0]))
+                self.server_port_text.setText(str(file_data[1]))
+                self.server_type_text.setText(str(file_data[2]))
 
-        except (FileNotFoundError, PermissionError):
-            pass
-
-        title.setObjectName('title')
+        except (FileNotFoundError, PermissionError, IndexError) as e:
+            self.log_error(e)
 
         layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addSpacing(1)
+        layout.addWidget(points_earned, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(lessons_completed, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(clear_log_button)
+        layout.addWidget(clear_lessons_button)
+        layout.addWidget(clear_all_data)
+        layout.addSpacing(2)
         layout.addWidget(self.server_ip_text)
         layout.addWidget(self.server_port_text)
         layout.addWidget(self.server_type_text)
         layout.addWidget(submit)
         layout.addWidget(go_back)
+
+        title.setObjectName('title')
+        clear_log_button.setObjectName('clear_log')
+        points_earned.setObjectName('points_earned')
+        lessons_completed.setObjectName('lessons_completed')
 
         self.setStyleSheet("""
                             QMainWindow{
@@ -629,15 +1171,38 @@ class MainWindow(QMainWindow):
                             }
                             QLabel{
                                 color: black;
+                                font-weight: bold;
                             }
                             QLabel#title{
-                                font-size: 30px;
-                                font-weight: bold;
+                                font-size: 50px;
+                                text-decoration: underline;
+                            }
+                            QLabel#points_earned{
+                                font-size: 35px;
+                            }
+                            QLabel#lessons_completed{
+                                font-size: 35px;
                             }
                             QPushButton{
                                 background-color: hsl(0, 1%, 27%);
                                 color: white;
-                                border: 1px solid;
+                                border: 2px solid;
+                                border-radius: 5px;
+                                font-weight: bold;
+                                font-size: 25px;
+                            }
+                            QPushButton#clear_log{
+                                background-color: hsl(0, 92%, 53%);
+                                color: white;
+                                border: 2px solid;
+                                border-radius: 5px;
+                                font-weight: bold;
+                                font-size: 25px;
+                            }
+                            QPushButton#clear_log:hover{
+                                background-color: hsl(0, 92%, 73%);
+                                color: white;
+                                border: 2px solid;
                                 border-radius: 5px;
                                 font-weight: bold;
                                 font-size: 25px;
@@ -645,23 +1210,57 @@ class MainWindow(QMainWindow):
                             QPushButton:hover{
                                 background-color: hsl(0, 1%, 47%);
                                 color: white;
-                                border: 1px solid;
+                                border: 2px solid;
                                 border-radius: 5px;
+                            }
+                            QLineEdit{
+                                background-color: white;
+                                color: black;
+                                border: 2px solid;
+                                border-radius: 5px;
+                                font-size: 25px;
                             }
                         """)
 
         central.setLayout(layout)
         submit.clicked.connect(set_connect_data)
         go_back.clicked.connect(self.search)
+        clear_log_button.clicked.connect(clear_log)
+        clear_lessons_button.clicked.connect(delete_lessons)
+        clear_all_data.clicked.connect(delete_all_data)
 
-    def press_button(self):
-        if str(self.user_input.toPlainText()).replace('"', "'") == self.answer:
+    def press_button(self, id_l, max_points=0):
+        if str(self.user_input.toPlainText()).replace('"', "'").rstrip() == self.answer.rstrip():
             self.submit.setStyleSheet('background-color: hsl(115, 100%, 70%)') # light green
+            self.lessons_completed += 1
+            self.points += int(int(max_points) / int(self.lesson_attempt))
+            self.lesson_attempt = 1
+            lesson = self.mark_lesson_finish(id_l)
+            lesson["completed"] = "True"
+
+            file_path = str(get_appdata_path() + '\\lessons.json')
+            with open(file_path, 'r') as f:
+                data = json_load(f)
+
+            for idx, lsn in enumerate(data["lessons"]):
+                if int(lsn["id"]) == id_l:
+                    data["lessons"][idx] = lesson
+                    break
+
+            with open(file_path, 'w') as f:
+                dump(data, f)
+
+
+            self.save_data()
+            self.reload_json()
+            self.search()
+
         else:
             self.submit.setStyleSheet('background-color: hsl(0, 97%, 62%)')
+            self.lesson_attempt += 1
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
+    app = QApplication(sys_argv)
     window = MainWindow()
     window.show()
-    sys.exit(app.exec())
+    sys_exit(app.exec())

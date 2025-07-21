@@ -1,11 +1,14 @@
 # 📁 PyEducate
 
-A powerful **file-sharing education app** made in Python! Works across devices across the same network with minimal setup.
+A powerful **education app** made in Python, utilising the power of sockets & PySide6 to give users a **gamified** learning experience!
+Works across devices across the same network with minimal setup.
 
 ---
 ## 🛡️ Supports:
 - ✅ One-to-one file transfers
 - ✅ Graphical User Interface
+- ✅ No internet connection required (runs on the local network)
+- ✅ Auto-connect to server
 
 ---
 
@@ -43,11 +46,15 @@ A powerful **file-sharing education app** made in Python! Works across devices a
 ## 🚀 Getting Started
 
 ### ✅ Requirements
-- Python 3.8+
+- Python 3.6+
 - Windows Device
-- No internet connection required (runs on local network)
 
 ### 🔧 Installation
+
+###### Download a released version below:
+https://github.com/shegue77/PyEducate/releases
+
+###### OR
 
 ###### 1. Clone the repo:
     git clone https://github.com/shegue77/PyEducate.git
@@ -68,9 +75,9 @@ A powerful **file-sharing education app** made in Python! Works across devices a
 ---
 
 ### 📦 Packaging (Optional)
-###### You can convert the files into an .exe using the following to comply with LGPL:
+###### You can convert the files into an .exe using the following:
     pip install pyinstaller
-    pyinstaller --onedir file_path
+    pyinstaller --onedir [file_path]
 
 ###### Alternatively, use this script to automatically convert all files to .exe:
     pip install pyinstaller
@@ -81,6 +88,7 @@ A powerful **file-sharing education app** made in Python! Works across devices a
 ## 📸 Screenshots
 
 > ![Server](assets/server.png)
+
 > ![Lesson Editor](assets/lesson-editor.png)
 
 ---
