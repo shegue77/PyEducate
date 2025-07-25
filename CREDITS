@@ -1,8 +1,8 @@
-This application is licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
+This application is licensed under the GNU General Public License v3.0 (GPL-3.0).
 Source code available at: https://github.com/shegue77/PyEducate
 
 -----------------------------------------------------------------------------------------------------
 
-This application uses PySide6, licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
+This application uses PySide6, licensed under the GNU General Public License v3.0 (GPL-3.0).
 PySide6 is developed and maintained by The Qt Company.
 Source code available at: https://www.qt.io/qt-for-python
