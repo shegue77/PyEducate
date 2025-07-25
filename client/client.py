@@ -1,5 +1,6 @@
 # Copyright (C) 2025 shegue77
 # SPDX-License-Identifier: GPL-3.0-or-later
+__version__ = '1.0.0-rc0'
 
 # ---------------------------[ DEPENDENCIES ]---------------------------
 from sys import argv as sys_argv, exit as sys_exit
@@ -12,7 +13,11 @@ from datetime import datetime
 from platform import system
 
 import connectmod
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QPlainTextEdit, QVBoxLayout, QPushButton, QLineEdit, QHBoxLayout, QMessageBox, QStyle, QSizePolicy
+from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget,
+                               QLabel,
+                               QPlainTextEdit, QVBoxLayout, QPushButton,
+                               QLineEdit, QHBoxLayout, QMessageBox,
+                               QStyle, QSizePolicy)
 from PySide6.QtGui import Qt
 from PySide6.QtCore import QSize
 # ----------------------------------------------------------------------
@@ -64,7 +69,8 @@ try:
         SERVER_PORT = int(data[1])
         IP_TYPE = str(data[2])
 
-    thread = Thread(target=attempt_connect_loop, args=(SERVER_IP, SERVER_PORT, IP_TYPE), daemon=True).start()
+    Thread(target=attempt_connect_loop,
+                    args=(SERVER_IP, SERVER_PORT, IP_TYPE), daemon=True).start()
 
 except FileNotFoundError as fe:
     print(f'[!!] Connect data not found!\n{fe}')
@@ -99,7 +105,7 @@ class MainWindow(QMainWindow):
 
     def save_data(self):
         file_path = str(get_appdata_path() + '\\SAVE_DATA')
-        with open(file_path, 'w') as f:
+        with open(file_path, 'w', encoding='utf-8') as f:
             data = f'{str(self.points)} {str(self.lessons_completed)}'
             f.write(data)
         print('Point data saved successfully')
@@ -115,11 +121,11 @@ class MainWindow(QMainWindow):
         data = str(timestamp + ' ' + str(data) + '\n')
 
         try:
-            with open(log_path, 'a') as f:
+            with open(log_path, 'a', encoding='utf-8') as f:
                 f.write(data)
 
         except FileNotFoundError:
-            with open(log_path, 'w') as f:
+            with open(log_path, 'w', encoding='utf-8') as f:
                 f.write(data)
 
         except PermissionError:
@@ -384,7 +390,14 @@ class MainWindow(QMainWindow):
                     for quiz in lesson['quiz']:  # Loop over the quiz list
                         print(quiz['question'])
 
-                        return str(lesson['id']), str(lesson['title']), str(lesson['image']), str(lesson['description']), str(lesson['content']), str(quiz['question']), str(quiz['answer']), str(is_complete)
+                        return (str(lesson['id']),
+                                str(lesson['title']),
+                                str(lesson['image']),
+                                str(lesson['description']),
+                                str(lesson['content']),
+                                str(quiz['question']),
+                                str(quiz['answer']),
+                                str(is_complete))
 
             except Exception as e:
                 print(e)
@@ -396,14 +409,14 @@ class MainWindow(QMainWindow):
     def search(self):
         save_data_path = str(get_appdata_path() + '\\SAVE_DATA')
         try:
-            with open(save_data_path, 'r') as f:
+            with open(save_data_path, 'r', encoding='utf-8') as f:
                 save_data = f.read().strip().split()
                 self.points = int(save_data[0])
                 self.lessons_completed = int(save_data[1])
 
         except FileNotFoundError as fe:
             self.log_error(fe)
-            with open(save_data_path, 'w') as f:
+            with open(save_data_path, 'w', encoding='utf-8') as f:
                 f.write('0 0')
 
         except IndexError as ie:
@@ -511,7 +524,7 @@ class MainWindow(QMainWindow):
                 text = QLabel("Placeholder\nUnknown Description\nID: ??\nCompleted: N/A")
                 data = ''
 
-            if idx == 0 or idx == 1:
+            if idx in (0, 1):
                 left_layout.addWidget(text)
                 if passed_lessons[idx] is None or data[7] == 'True':
                     buttons[idx].setText('Lesson complete')
@@ -522,7 +535,7 @@ class MainWindow(QMainWindow):
 
                 left_layout.addWidget(buttons[idx])
 
-            elif idx == 2 or idx == 3:
+            elif idx in (2, 3):
                 second_left_layout.addWidget(text)
                 if passed_lessons[idx] is None or data[7] == 'True':
                     buttons[idx].setText('Lesson complete')
@@ -533,7 +546,7 @@ class MainWindow(QMainWindow):
 
                 second_left_layout.addWidget(buttons[idx])
 
-            elif idx == 4 or idx == 5:
+            elif idx in (4, 5):
                 right_layout.addWidget(text)
                 if passed_lessons[idx] is None or data[7] == 'True':
                     buttons[idx].setText('Lesson complete')
@@ -544,7 +557,7 @@ class MainWindow(QMainWindow):
 
                 right_layout.addWidget(buttons[idx])
 
-            elif idx == 6 or idx == 7:
+            elif idx in (6, 7):
                 second_right_layout.addWidget(text)
                 if passed_lessons[idx] is None or data[7] == 'True':
                     buttons[idx].setText('Lesson complete')
@@ -673,11 +686,11 @@ class MainWindow(QMainWindow):
         def read_leaderboard(filename):
             if not os_path_exists(filename):
                 # Create empty file if it doesn't exist
-                with open(filename, 'w') as f:
+                with open(filename, 'w', encoding='utf-8') as f:
                     dump([], f)
                 return []
 
-            with open(filename, 'r') as f:
+            with open(filename, 'r', encoding='utf-8') as f:
                 return json_load(f)
 
         def get_top_n_users(filename, type_n='points', n=10):
@@ -743,7 +756,10 @@ class MainWindow(QMainWindow):
             except IndexError as ie:
                 self.log_error(ie)
                 print(ie)
-                self.show_message_box('error', 'Leaderboard', 'Unable to initialise the leaderboard!\nThis is due to no known players being on the leaderboard.')
+                self.show_message_box('error',
+        'Leaderboard',
+        'Unable to initialise the leaderboard!\n'
+        'This is due to no known players being on the leaderboard.')
                 return 'Error'
 
         total_pages = int(get_total_pages()[1])
@@ -782,7 +798,9 @@ class MainWindow(QMainWindow):
             except IndexError:
                 badge = ''
 
-            person = QLabel(f'{badge} {idx}. Username: {part["username"]}  |  {str(self.leaderboard_type).strip().replace('_', ' ').lower().capitalize()}: {part[str(self.leaderboard_type.strip())]:,.2f}')
+            person = QLabel(f'{badge} {idx}. Username: {part["username"]}  |  '
+            f'{str(self.leaderboard_type).strip().replace('_', ' ').lower().capitalize()}: '
+            f'{part[str(self.leaderboard_type.strip())]:,.2f}')
             layout.addWidget(person)
 
         total_pages_text = QLabel(f"Page: {self.leaderboard_page}/{total_pages}", self)
@@ -1008,28 +1026,32 @@ class MainWindow(QMainWindow):
             required_texts = (self.server_ip_text, self.server_port_text, self.server_type_text)
             for text in required_texts:
                 if text.text() == '':
-                    self.show_message_box('error', 'Error saving connection data', 'Unable to connect data as not all parts are filled out.')
+                    self.show_message_box('error',
+                                          'Error saving connection data',
+                                          'Unable to connect data as not all parts are filled out.')
                     return
 
-            with open(file_path, 'w') as file:
+            with open(file_path, 'w', encoding='utf-8') as file:
                 data = f'{required_texts[0].text().strip()} {required_texts[1].text().strip()} {required_texts[2].text().strip()}'
                 file.write(data)
 
-            self.show_message_box('info', 'Connection data','Successfully saved connection data.\nPlease restart the app for these changes to take effect.')
+            self.show_message_box('info', 'Connection data',
+        'Successfully saved connection data.\n'
+        'Please restart the app for these changes to take effect.')
 
         def clear_log():
             file_path = get_appdata_path() + '\\client.log'
             file_path_2 = get_appdata_path() + '\\client-module.log'
 
             try:
-                with open(file_path, 'w') as f:
+                with open(file_path, 'w', encoding='utf-8') as f:
                     f.write('')
 
             except (FileNotFoundError, PermissionError) as e:
                 print(e)
 
             try:
-                with open(file_path_2, 'w') as f:
+                with open(file_path_2, 'w', encoding='utf-8') as f:
                     f.write('')
 
             except (FileNotFoundError, PermissionError) as e:
@@ -1042,10 +1064,11 @@ class MainWindow(QMainWindow):
             file_path = get_appdata_path() + '\\lessons.json'
 
             try:
-                with open(file_path, 'w') as f:
+                with open(file_path, 'w', encoding='utf-8') as f:
                     f.write('')
 
-                self.show_message_box('info', 'Lesson deletion', 'All lessons were successfully deleted.')
+                self.show_message_box('info', 'Lesson deletion',
+            'All lessons were successfully deleted.')
                 self.log_error('All lessons were successfully deleted.')
 
             except (FileNotFoundError, PermissionError) as e:
@@ -1056,10 +1079,11 @@ class MainWindow(QMainWindow):
             file_path = get_appdata_path() + '\\leaderboards.json'
 
             try:
-                with open(file_path, 'w') as f:
+                with open(file_path, 'w', encoding='utf-8') as f:
                     f.write('')
 
-                self.show_message_box('info', 'Leaderboard deletion', 'All leaderboard data has successfully been deleted.')
+                self.show_message_box('info', 'Leaderboard deletion',
+            'All leaderboard data has successfully been deleted.')
                 self.log_error('All leaderboard data was successfully deleted.')
 
             except (FileNotFoundError, PermissionError) as e:
@@ -1077,25 +1101,25 @@ class MainWindow(QMainWindow):
             file_path_2 = get_appdata_path() + '\\SAVE_DATA'
 
             try:
-                with open(file_path, 'w') as f:
+                with open(file_path, 'w', encoding='utf-8') as f:
                     f.write('')
 
             except (FileNotFoundError, PermissionError) as e:
                 self.log_error(e)
                 print(e)
-                pass
 
             try:
-                with open(file_path_2, 'w') as f:
+                with open(file_path_2, 'w', encoding='utf-8') as f:
                     f.write('')
 
             except (FileNotFoundError, PermissionError) as e:
                 self.log_error(e)
                 print(e)
-                pass
 
             self._init_settings()
-            self.show_message_box('warning', 'Data deletion', 'All data was successfully reset.\nPlease restart the app for these changes to take effect.')
+            self.show_message_box('warning', 'Data deletion',
+        'All data was successfully reset.\n'
+        'Please restart the app for these changes to take effect.')
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -1113,7 +1137,8 @@ class MainWindow(QMainWindow):
 
         points_earned = QLabel(f'Points: {self.points:,.2f}', self)
         lessons_completed = QLabel(f"Lessons completed: {self.lessons_completed:,}", self)
-        connection_status = QLabel(f"Connection Status: {'Connected 🛜' if connectmod.is_connected() else 'Disconnected ❌'}")
+        connection_status = QLabel(f"Connection Status: "
+        f"{'Connected 🛜' if connectmod.is_connected() else 'Disconnected ❌'}")
         print(self.points)
         print(self.lessons_completed)
 
@@ -1134,7 +1159,7 @@ class MainWindow(QMainWindow):
         go_back = QPushButton('Go Back ↩️', self)
 
         try:
-            with open(file_path, 'r') as file:
+            with open(file_path, 'r', encoding='utf-8') as file:
                 file_data = file.read().split()
                 self.server_ip_text.setText(str(file_data[0]))
                 self.server_port_text.setText(str(file_data[1]))
@@ -1243,7 +1268,7 @@ class MainWindow(QMainWindow):
             lesson["completed"] = "True"
 
             file_path = str(get_appdata_path() + '\\lessons.json')
-            with open(file_path, 'r') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 data = json_load(f)
 
             for idx, lsn in enumerate(data["lessons"]):
@@ -1251,7 +1276,7 @@ class MainWindow(QMainWindow):
                     data["lessons"][idx] = lesson
                     break
 
-            with open(file_path, 'w') as f:
+            with open(file_path, 'w', encoding='utf-8') as f:
                 dump(data, f)
 
 
