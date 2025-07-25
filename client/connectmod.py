@@ -1,5 +1,6 @@
 # Copyright (C) 2025 shegue77
 # SPDX-License-Identifier: GPL-3.0-or-later
+__version__ = '1.0.0-rc0'
 
 # ---------------------------[ DEPENDENCIES ]---------------------------
 import socket
