@@ -106,7 +106,7 @@ python package-all.py
 ---
 
 ## Contributing
-We welcome contributions to LiteLLM! Whether you're fixing bugs, adding features, or improving documentation, we appreciate your help.
+We welcome contributions to PyEducate! Whether you're fixing bugs, adding features, or improving documentation, we appreciate your help.
 
 ``` bash
 git clone https://github.com/shegue77/PyEducate.git
