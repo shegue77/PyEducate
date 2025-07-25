@@ -1,3 +1,6 @@
+# Copyright (C) 2025 shegue77
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 
 # ---------------------------[ DEPENDENCIES ]---------------------------
 import socket
@@ -5,8 +8,9 @@ from threading import Thread, Lock
 from json import load, loads, dump, dumps, JSONDecodeError
 from os import getenv, makedirs
 from datetime import datetime
-from os.path import exists as os_path_exists
+from os.path import exists as os_path_exists, expanduser
 from schedule import every, run_pending
+from platform import system
 # ----------------------------------------------------------------------
 
 
@@ -17,12 +21,19 @@ active_threads = [] # Keeps track of (most) active threads.
 end_marker = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"  # End marker used when sending JSON files, make sure this does NOT appear at all in your JSON file.
 # MAKE SURE that this end marker MATCHES the end marker on the client.
 safe_leaderboard = Lock()
+safe_banned_users = Lock()
 # ----------------------------------------------------------------------
-
 
 # Gets the full path to APPDATA.
 def get_appdata_path():
-    path_to_appdata = getenv('APPDATA')
+    user_os = system()
+    if user_os == 'Windows':
+        path_to_appdata = getenv('APPDATA')
+    elif user_os == 'Darwin':
+        path_to_appdata = expanduser('~/Library/Application Support')
+    else:
+        path_to_appdata = getenv('XDG_DATA_HOME', expanduser('~/.local/share'))
+
     if os_path_exists(path_to_appdata + "\\PyEducate"):
         if os_path_exists(path_to_appdata + "\\PyEducate\\server"):
             full_path_data = path_to_appdata + "\\PyEducate\\server"
@@ -55,6 +66,140 @@ def log_error(data):
 
     except PermissionError:
         print(f'[!] Insufficient permissions!\nUnable to log data at {log_path}!')
+
+def ban_user(command):
+    try:
+        ip_address = command.split(" ")[1]
+    except IndexError:
+        print('[!] IP address not specified!\nUnable to ban user!')
+        return None
+    try:
+        reason = command.split(" ")[2]
+    except Exception:
+        reason = 'Unknown'
+    try:
+        severity = command.split(" ")[3]
+    except Exception:
+        severity = 'Unknown'
+    try:
+        end_date = command.split(" ")[4]
+    except Exception:
+        end_date = 'Indefinite'
+
+    file_path = str(get_appdata_path() + '\\banned-users.json')
+    try:
+        with safe_banned_users:
+            with open(file_path, 'r') as f:
+                json_data = load(f)
+    except FileNotFoundError:
+        json_data = {"banned_ips": {}}
+    except JSONDecodeError:
+        json_data = {"banned_ips": {}}
+
+    if reason.strip() == '':
+        reason = 'Unknown'
+    if end_date.strip() == '':
+        end_date = 'Indefinite'
+    if severity.strip() == '':
+        severity = 'Unknown'
+
+    now = datetime.now()
+    timestamp = now.strftime("%d-%m-%Y%H:%M:%S")
+    new_ban = loads('{"timestamp": ' + f'"{timestamp}", ' + f'"reason": "{reason}", ' + f'"severity": "{severity}", ' + f'"end_date": "{end_date}"' + '}')
+
+
+    json_data["banned_ips"][ip_address] = new_ban
+
+    with safe_banned_users:
+        with open(file_path, 'w') as f:
+            dump(json_data, f, indent=2)
+
+    print(f'{ip_address} has been banned!\nRun !disconnect to cut all connections with {ip_address}.')
+
+
+def unban_user(ip_address):
+    file_path = str(get_appdata_path() + '\\banned-users.json')
+
+    try:
+        with safe_banned_users:
+            with open(file_path, 'r') as f:
+                data = load(f)
+
+    except FileNotFoundError:
+        print("Ban list not found.")
+        with safe_banned_users:
+            with open(file_path, 'w') as f:
+                json_data = {"banned_ips": {}}
+                dump(json_data, f)
+        return
+
+    except JSONDecodeError:
+        with safe_banned_users:
+            with open(file_path, 'w') as f:
+                json_data = {"banned_ips": {}}
+                dump(json_data, f)
+        return
+
+    if ip_address in data["banned_ips"]:
+        del data["banned_ips"][ip_address]
+
+        with safe_banned_users:
+            with open(file_path, 'w') as f:
+                dump(data, f, indent=2)
+
+        print(f'Unbanned {ip_address}')
+    else:
+        print(f'IP address {ip_address} not found in ban list.')
+
+def check_if_banned(ip_address):
+    file_path = str(get_appdata_path() + '\\banned-users.json')
+
+    try:
+        with safe_banned_users:
+            with open(file_path, 'r') as f:
+                json_data = load(f)
+
+    except FileNotFoundError:
+        print("Ban list not found.")
+        with safe_banned_users:
+            with open(file_path, 'w') as f:
+                json_data = {"banned_ips": {}}
+                dump(json_data, f)
+        return False
+
+    except JSONDecodeError:
+        with safe_banned_users:
+            with open(file_path, 'w') as f:
+                json_data = {"banned_ips": {}}
+                dump(json_data, f)
+        return False
+
+
+    if ip_address[0] in json_data["banned_ips"].keys():
+        return True
+
+    else:
+        return False
+
+def list_banned():
+    file_path = str(get_appdata_path() + '\\banned-users.json')
+    banned_ip_data = "\nBanned IP addresses:\n\n"
+
+    try:
+        with open(file_path, 'r') as f:
+            json_data = load(f)
+    except FileNotFoundError:
+        json_data = {"banned_ips": {}}
+    except JSONDecodeError:
+        json_data = {"banned_ips": {}}
+
+    for part in json_data["banned_ips"]:
+        banned_ip_data += f'IP: {part}:\n'
+        banned_ip_data += f'Reason: {json_data["banned_ips"][part]["reason"]}\n'
+        banned_ip_data += f'Severity: {json_data["banned_ips"][part]["severity"]}\n'
+        banned_ip_data += f'Timestamp: {json_data["banned_ips"][part]["timestamp"]}\n\n'
+
+    return banned_ip_data
 
 # Parses and sends the JSON file to the client.
 def send_json(client, file_path, id_n=None):
@@ -111,7 +256,7 @@ def send_leaderboard(client, filename):
     try:
         file = open(filename, 'r', encoding='utf-8')
     except FileNotFoundError:
-        filename = str(get_appdata_path() + '\\leaderboard.json')
+        filename = str(get_appdata_path() + '\\leaderboards.json')
         file = open(filename, 'r', encoding='utf-8')
 
     file.close()
@@ -204,7 +349,7 @@ def clean_leaderboard(file_path):
 
 
 def update_leaderboard(username, point_amount, lesson_completed):
-    FILENAME = str(get_appdata_path()) + '\\leaderboard.json'
+    FILENAME = str(get_appdata_path()) + '\\leaderboards.json'
 
     # Save the leaderboard to the JSON file
     def write_leaderboard(filename, leaderboard):
@@ -240,7 +385,15 @@ def update_leaderboard(username, point_amount, lesson_completed):
 
 # Function to handle each connected client
 def handle_client(client_socket, addr):
+    if check_if_banned(addr):
+        client_socket.sendall('!disconnect'.encode())
+        client_socket.close()
+        clients.pop(addr, None)
+        usernames.pop(addr, None)
+        return None
+
     clients[addr] = client_socket
+
     print(f"[!] {addr[0]} connected.")
 
     try:
@@ -307,6 +460,33 @@ def disconnect(clients_list, server_m):
     server_m.close()
     exit(0)
 
+def show_license():
+    data = """
+PyEducate Server - Server application used to send data such as lessons to clients.
+Copyright (C) 2025 shegue77
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>
+"""
+    return data
+
+def show_version():
+    data = """
+PyEducate Server v1.0.0-rc0 | Copyright (C) 2025 shegue77
+This program comes with ABSOLUTELY NO WARRANTY.
+This software is released under the GNU GPL; run !license for details.
+"""
+    return data
 
 # Displays help data for commands.
 def help_data():
@@ -319,6 +499,12 @@ Available Commands:
         
     !info
         Shows information of the server.
+    
+    !version
+        Shows the version of the application.
+        
+    !license
+        Shows the license of the application.
         
     !getip
         Gets the public IPv4 address of client(s).
@@ -334,7 +520,7 @@ Available Commands:
     
     !updateboard [path]
         Parses and sends leaderboard data of the top 10 which is in a leaderboard JSON to client(s).
-        Example: !updateboard leaderboard.json
+        Example: !updateboard leaderboards.json
         
     !sendlesson <lesson_ID> [path]
         Sends specific lesson(s) from a JSON file containing lessons (identified by ID) to client(s).
@@ -344,6 +530,17 @@ Available Commands:
     !sendjson [path]
         Sends a JSON file containing ALL lessons to client(s).
         Example: !sendjson lessons.json
+        
+    !showblacklist
+        Displays the list of all banned IP addresses.
+        
+    !ban <IP_ADDRESS> [reason] [severity]
+        Bans (prevents) an IP address from connecting to the server.
+        Example: !ban 127.0.0.1 port_scanning high
+        
+    !unban <IP_ADDRESS>
+        Removes the ban from the specified IP address.
+        Example: !unban 127.0.0.1
     
     !disconnect
         Cuts a connection with client(s).
@@ -370,10 +567,9 @@ def start_server(host, port, server_type='ipv4', marker_end=b"<<<<<<<erjriefjgjr
 
     server.bind((host, port))
     server.listen()
-    print("\n\nPyEducate: Teacher Panel")
-    print("Made by shegue77, see license and source code at the github repo: https://github.com/shegue77/PyEducate")
+    print(show_version())
     print("Press the 'enter' key to refresh client list & the command prompt.\n")
-    print("For more help about the commands of this tool, run !help to view all commands with explanations.\n")
+    print("For more help about the commands of this application, run !help to view all commands with explanations.\n")
     print(f"[*] Listening on {host}:{port}")
 
     # Start accepting client connections
@@ -416,6 +612,24 @@ def process_commands(server, server_data):
                 print(help_data())
             elif str(choice).strip().lower().startswith("!info"):
                 print(f"SERVER IP: {server_data[0]}\nSERVER PORT: {server_data[1]}\nIP TYPE: {server_data[2]}\nEnd marker: {str(server_data[3])}\n")
+            elif str(choice).strip().lower().startswith("!ban"):
+                ban_user(str(choice).strip().lower())
+            elif str(choice).strip().lower().startswith("!unban"):
+                try:
+                    ip_address = str(choice).strip().lower().split()[1]
+                except Exception:
+                    print('[!] IP address not specified! Unable to unban user!')
+                    continue
+
+                unban_user(ip_address)
+            elif str(choice).strip().lower().startswith("!version"):
+                print(show_version())
+            elif str(choice).strip().lower().startswith("!license"):
+                print(show_license())
+            elif str(choice).strip().lower().startswith("!showblacklist"):
+                print(list_banned())
+            elif str(choice).strip().lower().startswith("!shutdown"):
+                disconnect(clients.values(), server)
 
             continue
 
@@ -427,10 +641,6 @@ def process_commands(server, server_data):
                 print(help_data())
                 continue
 
-            if not command.startswith("!sendjson") and not command.startswith("!shutdown") and not command == '' and not command.startswith("!updateboard"):
-                for client in clients.values():
-                    client.sendall(command.encode())
-
             elif command.startswith("!shutdown"):
                 disconnect(clients.values(), server)
 
@@ -440,16 +650,19 @@ def process_commands(server, server_data):
             elif command == "":
                 continue
 
-            if command.startswith("!updateboard"):
+            elif command.startswith("!updateboard"):
+                for client in clients.values():
+                    client.sendall(str('!getstats').encode())
+
                 for client in clients.values():
                     try:
                         file_path_json = command.split(" ")[1]
 
                     except IndexError:
-                        file_path_json = get_appdata_path() + '\\leaderboard.json'
+                        file_path_json = get_appdata_path() + '\\leaderboards.json'
 
                     except Exception as er:
-                        file_path_json = get_appdata_path() + '\\leaderboard.json'
+                        file_path_json = get_appdata_path() + '\\leaderboards.json'
                         log_error(er)
 
                     client.sendall(str('!updateboard').encode())
@@ -459,7 +672,7 @@ def process_commands(server, server_data):
                     thread.start()
                     active_threads.append(thread)
 
-            if command.startswith("!sendjson") or command.startswith("!sendlesson"):
+            elif command.startswith("!sendjson") or command.startswith("!sendlesson"):
                 for client in clients.values():
                     if command.startswith("!sendjson"):
                         try:
@@ -503,6 +716,30 @@ def process_commands(server, server_data):
                     thread.start()
                     active_threads.append(thread)
 
+            elif command.startswith("!showblacklist"):
+                print(list_banned())
+
+            elif command.startswith("!version"):
+                print(show_version())
+            elif command.startswith("!license"):
+                print(show_license())
+
+            elif command.startswith("!ban"):
+                ban_user(command)
+
+            elif command.startswith("!unban"):
+                try:
+                    ip_address = str(choice).strip().lower().split()[1]
+                except Exception:
+                    print('[!] IP address not specified! Unable to unban user!')
+                    continue
+
+                unban_user(ip_address)
+
+            else:
+                for client in clients.values():
+                    client.sendall(command.encode())
+
         elif 0 <= choice < len(clients):
             target_addr = list(clients.keys())[choice]
             command = input(f"Enter command to send to {target_addr[0]}: ").strip().lower()
@@ -524,7 +761,6 @@ def process_commands(server, server_data):
                     try:
                         lesson_id = command.replace(']', '[').split("[")[1]
                         lesson_id = lesson_id.replace(',', '').split(' ')
-                        print(lesson_id)
 
                     except Exception as ie:
                         log_error(ie)
@@ -552,17 +788,18 @@ def process_commands(server, server_data):
                 active_threads.append(thread)
 
             elif command.startswith("!updateboard"):
+                clients[target_addr].sendall(str('!getstats').encode())
                 try:
                     file_path_json = command.split(" ")[1]
 
                 except IndexError:
-                    file_path_json = get_appdata_path() + '\\leaderboard.json'
+                    file_path_json = get_appdata_path() + '\\leaderboards.json'
 
                 except Exception as er:
-                    file_path_json = get_appdata_path() + '\\leaderboard.json'
+                    file_path_json = get_appdata_path() + '\\leaderboards.json'
                     log_error(er)
 
-                clients[target_addr].sendall(str('!sendjson').encode())
+                clients[target_addr].sendall(str('!updateboard').encode())
 
                 thread = Thread(target=send_leaderboard, args=(clients[target_addr], file_path_json))
 
@@ -581,6 +818,21 @@ def process_commands(server, server_data):
             elif command.startswith("!shutdown"):
                 print("[!] Unsupported command, please use broadcast to run !shutdown.\nDid you mean !exit?")
 
+            elif command.startswith("!showblacklist"):
+                print(list_banned())
+
+            elif command.startswith("!ban"):
+                ban_user(command)
+
+            elif command.startswith("!unban"):
+                try:
+                    ip_address = str(choice).strip().lower().split()[1]
+                except Exception:
+                    print('[!] IP address not specified! Unable to unban user!')
+                    continue
+
+                unban_user(ip_address)
+
             else:
                 clients[target_addr].sendall(command.encode())
 
@@ -594,16 +846,34 @@ if __name__ == "__main__":
     full_path = get_appdata_path()
     ANSWER = str(input('Would you like to change any settings (y/n): ')).strip().lower()
     if ANSWER == 'y' or ANSWER == 'yes':
-        SERVER_IP = str(input("Enter server IP (IPv4/IPv6): "))
         SERVER_PORT = int(input("Enter server port: "))
         IP_TYPE = str(input("Enter IP type (IPv4/IPv6): ")).lower()
-        end_marker = input("Enter the end marker if desired (Must match with client. End marker has a default preset): ")
+
+        SERVER_IP = ''
+        if IP_TYPE.strip() == 'ipv6':
+
+            hostname = socket.gethostname()
+            try:
+                for info in socket.getaddrinfo(hostname, None):
+                    if info[0] == socket.AF_INET6:  # Check for IPv6
+                        SERVER_IP = info[4][0]
+
+                if SERVER_IP == '':
+                    SERVER_IP = input("Enter local IP address (IPv6): ")
+            except socket.gaierror:
+
+                SERVER_IP = input("Enter local IP address (IPv6): ")
+
+        else:
+            SERVER_IP = socket.gethostbyname(socket.gethostname())
+
         with open(full_path + '\\connect-data.txt', 'w', encoding='utf-8') as f:
-            f.write(f"{SERVER_IP}\n{SERVER_PORT}\n{IP_TYPE}\n{end_marker}")
+            f.write(f"{SERVER_PORT}\n{IP_TYPE}")
+
+        print(SERVER_IP)
 
     try:
         with open(full_path + '\\connect-data.txt', 'r', encoding='utf-8') as f:
-            SERVER_IP = str(f.readline().strip().replace('\n', ''))
             SERVER_PORT = int(f.readline().strip().replace(' ', ''))
             try:
                 IP_TYPE = str(f.readline().strip()).lower()
@@ -613,31 +883,123 @@ if __name__ == "__main__":
                 IP_TYPE = "ipv4"
                 log_error(e)
 
+            end_marker = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"
+
+        SERVER_IP = ''
+        if IP_TYPE.strip() == 'ipv6':
+            hostname = socket.gethostname()
             try:
-                end_marker = f.readline().strip().encode()
-                if end_marker.strip() == b'':
-                    end_marker = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"
-            except Exception as e:
-                log_error(e)
-                end_marker = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"
+                for info in socket.getaddrinfo(hostname, None):
+                    if info[0] == socket.AF_INET6:  # Check for IPv6
+                        SERVER_IP = info[4][0]
+
+                if SERVER_IP == '':
+                    SERVER_IP = input("Enter local IP address (IPv6): ")
+
+            except socket.gaierror:
+                print("Hostname could not be resolved.")
+                SERVER_IP = input("Enter local IP address (IPv6): ")
+
+        else:
+            SERVER_IP = socket.gethostbyname(socket.gethostname())
 
     except FileNotFoundError as fe:
         log_error(fe)
         print('[!] Unable to locate save data!\n')
-        SERVER_IP = str(input("Enter server IP (local): "))
         SERVER_PORT = int(input("Enter server port: "))
         IP_TYPE = str(input("Enter IP type (IPv4/IPv6): ")).lower()
-        end_marker = input("Enter the end marker if desired (Must match with client. Enter nothing if unsure): ").encode()
-        try:
-            if end_marker.strip() == b'':
-                end_marker = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"
+        end_marker = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"
 
-        except Exception as e:
-            end_marker = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"
-            log_error(e)
+        if IP_TYPE.strip() == 'ipv6':
+            SERVER_IP = ''
+            hostname = socket.gethostname()
+            try:
+                for info in socket.getaddrinfo(hostname, None):
+                    if info[0] == socket.AF_INET6:  # Check for IPv6
+                        SERVER_IP = info[4][0]
 
+                if SERVER_IP == '':
+                    SERVER_IP = input("Enter local IP address (IPv6): ")
+
+            except socket.gaierror:
+                print("Hostname could not be resolved.")
+                SERVER_IP = input("Enter local IP address (IPv6): ")
+
+        else:
+            SERVER_IP = socket.gethostbyname(socket.gethostname())
 
         with open(full_path + '\\connect-data.txt', 'w', encoding='utf-8') as f:
-            f.write(f"{SERVER_IP}\n{SERVER_PORT}\n{IP_TYPE}\n{end_marker}")
+            f.write(f"{SERVER_PORT}\n{IP_TYPE}")
+
+    emergency_command_prompt = str(input('Would you like to enter safe mode (DEBUG) (y/n): '))
+    if emergency_command_prompt in ('y', 'yes'):
+
+        print()
+        print('Emergency Console | Safe Boot')
+        print('Server Status: Offline')
+        print('\nExit safe mode to start the server.\n\n')
+        safe_mode_commands = '''
+Emergency Commands:
+    !help
+        Shows the available commands.
+                
+    !info
+        Displays info about the server.
+        
+    !version
+        Shows the version of the application.
+    
+    !license
+        Shows license information about the application.
+        
+    !showblacklist
+        Displays the list of all banned IP addresses.
+                
+    !ban <IP_ADDRESS> [reason] [severity]
+        Bans (prevents) an IP address from connecting to the server.
+        Example: !ban 127.0.0.1 port_scanning high
+        
+    !unban <IP_ADDRESS>
+        Removes the ban from the specified IP address.
+        Example: !unban 127.0.0.1
+            
+    !exit
+        Exits safe mode.
+            
+    !shutdown
+        Kills the program.
+'''
+        print(safe_mode_commands)
+
+        while True:
+            print()
+            command = str(input('Command: ')).strip().lower()
+
+            if command.startswith("!help"):
+                print(safe_mode_commands)
+            elif command.startswith("!info"):
+                print(f"SERVER IP: {SERVER_IP}\nSERVER PORT: {SERVER_PORT}\nIP TYPE: {IP_TYPE}\nEnd marker: {end_marker}\n")
+            elif command.startswith("!ban"):
+                ban_user(command)
+            elif command.startswith("!unban"):
+                try:
+                    ip_address = str(command).strip().lower().split()[1]
+                except Exception:
+                    print('[!] IP address not specified! Unable to unban user!')
+                    continue
+                unban_user(ip_address)
+            elif command.startswith("!version"):
+                print(show_version())
+            elif command.startswith("!license"):
+                print(show_license())
+            elif command.startswith("!showblacklist"):
+                print(list_banned())
+            elif command.startswith("!exit"):
+                break
+            elif command.startswith("!shutdown"):
+                exit(0)
+            else:
+                print('[!] Invalid command!')
+
 
     start_server(SERVER_IP, SERVER_PORT, IP_TYPE, end_marker)
