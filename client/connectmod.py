@@ -1,12 +1,16 @@
-# Connects the client to the server
+# Copyright (C) 2025 shegue77
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # ---------------------------[ DEPENDENCIES ]---------------------------
 import socket
-from os import getenv, makedirs, getlogin
-from os.path import exists as os_path_exists
+from getpass import getuser
+from threading import Event
+from os import getenv, makedirs
+from os.path import exists as os_path_exists, expanduser
 from json import load, loads, dump, JSONDecodeError
 from datetime import datetime
 from requests import get
+from platform import system
 # ----------------------------------------------------------------------
 
 
@@ -14,12 +18,20 @@ from requests import get
 client = None
 end_marker = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>" # End marker used when receiving JSON files, make sure that this end marker MATCHES the end marker on the server.
 id_amount = 1
+connected_to_server = Event()
 # ----------------------------------------------------------------------
 
 
 # Function gets the full path to APPDATA.
 def get_appdata_path():
-    path_to_appdata = getenv('APPDATA')
+    user_os = system()
+    if user_os == 'Windows':
+        path_to_appdata = getenv('APPDATA')
+    elif user_os == 'Darwin':
+        path_to_appdata = expanduser('~/Library/Application Support')
+    else:
+        path_to_appdata = getenv('XDG_DATA_HOME', expanduser('~/.local/share'))
+
     if os_path_exists(path_to_appdata + "\\PyEducate"):
         if os_path_exists(path_to_appdata + "\\PyEducate\\client"):
             full_path_data = path_to_appdata + "\\PyEducate\\client"
@@ -91,7 +103,7 @@ def get_json_file(new_lessons):
 
 
 # Downloads the lesson from the server (host).
-def download_file(client_r, mode='json'):
+def download_file(client_r, mode):
 
     print("Listening for data...")
 
@@ -154,6 +166,7 @@ def start_client(server_ip, server_port, server_type='ipv4'):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     client.connect((server_ip, server_port))
+    connected_to_server.set()
 
     while True:
         print('e')
@@ -165,7 +178,7 @@ def start_client(server_ip, server_port, server_type='ipv4'):
 
         elif command == "!sendjson":
             print('a')
-            download_file(client)
+            download_file(client, 'json')
             continue
 
         elif command == "!updateboard":
@@ -195,13 +208,13 @@ def start_client(server_ip, server_port, server_type='ipv4'):
 
         elif command == "!getusername":
             try:
-                username_data = '!getusername ' + str(getlogin())
+                username_data = '!getusername ' + str(getuser())
                 client.sendall(username_data.encode())
 
             except Exception as e:
                 log_error(e)
-                username_data = '!getusername ' + str(getenv('username'))
-                client.sendall(username_data.encode())
+                client.sendall(str(e).encode())
+
             continue
 
         elif command == "!getstats":
@@ -228,8 +241,15 @@ def start_client(server_ip, server_port, server_type='ipv4'):
 
             continue
 
+        else:
+            client.sendall('[!] Invalid command!'.encode())
+
 
     client.close()
+    connected_to_server.clear()
+
+def is_connected():
+    return connected_to_server.is_set()
 
 # Closes the client.
 def close_client():
@@ -239,7 +259,6 @@ def close_client():
 
     except Exception:
         pass
-    client = None
 
 
 # Reads the data about the IP, PORT and IP TYPE (IPv4/IPv6) of the server and connects to the server.
@@ -251,18 +270,15 @@ if __name__ == "__main__":
             SERVER_PORT = int(f.readline().strip())
             IP_TYPE = str(f.readline().strip()).lower().encode()
 
-    except FileNotFoundError as fe:
+    except Exception as fe:
         log_error(fe)
         print('[!] Unable to locate save data!\n')
-        SERVER_IP = input("Enter server IP (IPv4/IPv6): ")
+        SERVER_IP = input("Enter server IP (local): ")
         SERVER_PORT = input("Enter server port: ")
         IP_TYPE = input("Enter IP type (IPv4/IPv6): ").lower()
 
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(f"{SERVER_IP}\n{SERVER_PORT}\n{IP_TYPE}")
-
-    except Exception as e:
-        log_error(e)
 
 
     start_client(SERVER_IP, SERVER_PORT, IP_TYPE.lower())
