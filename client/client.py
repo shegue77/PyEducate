@@ -1,3 +1,5 @@
+# Copyright (C) 2025 shegue77
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # ---------------------------[ DEPENDENCIES ]---------------------------
 from sys import argv as sys_argv, exit as sys_exit
@@ -5,8 +7,9 @@ from json import load as json_load, dump, JSONDecodeError
 from threading import Thread
 from time import sleep
 from os import getenv, makedirs
-from os.path import exists as os_path_exists
+from os.path import exists as os_path_exists, expanduser
 from datetime import datetime
+from platform import system
 
 import connectmod
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QPlainTextEdit, QVBoxLayout, QPushButton, QLineEdit, QHBoxLayout, QMessageBox, QStyle, QSizePolicy
@@ -15,7 +18,14 @@ from PySide6.QtCore import QSize
 # ----------------------------------------------------------------------
 
 def get_appdata_path():
-    path_to_appdata = getenv('APPDATA')
+    user_os =  system()
+    if user_os == 'Windows':
+        path_to_appdata = getenv('APPDATA')
+    elif user_os == 'Darwin':
+        path_to_appdata = expanduser('~/Library/Application Support')
+    else:
+        path_to_appdata = getenv('XDG_DATA_HOME', expanduser('~/.local/share'))
+
     if os_path_exists(path_to_appdata + "\\PyEducate"):
         if os_path_exists(path_to_appdata + "\\PyEducate\\client"):
             full_path_data = path_to_appdata + "\\PyEducate\\client"
@@ -40,6 +50,7 @@ def attempt_connect_loop(SERVER_IP, SERVER_PORT, IP_TYPE):
         except (ConnectionError, ConnectionRefusedError, ConnectionResetError) as e:
             try:
                 connectmod.close_client()
+
             except Exception:
                 pass
             print(f"{e} Retrying in 10 seconds...")
@@ -92,22 +103,6 @@ class MainWindow(QMainWindow):
             data = f'{str(self.points)} {str(self.lessons_completed)}'
             f.write(data)
         print('Point data saved successfully')
-
-    @staticmethod
-    def get_appdata_path():
-        path_to_appdata = getenv('APPDATA')
-        if os_path_exists(path_to_appdata + "\\PyEducate"):
-            if os_path_exists(path_to_appdata + "\\PyEducate\\client"):
-                full_path_data = path_to_appdata + "\\PyEducate\\client"
-            else:
-                makedirs(path_to_appdata + "\\PyEducate\\client")
-                full_path_data = path_to_appdata + "\\PyEducate\\client"
-        else:
-            makedirs(path_to_appdata + "\\PyEducate")
-            makedirs(path_to_appdata + "\\PyEducate\\client")
-            full_path_data = path_to_appdata + "\\PyEducate\\client"
-
-        return full_path_data
 
     @staticmethod
     def log_error(data):
@@ -486,6 +481,17 @@ class MainWindow(QMainWindow):
             else:
                 break
 
+        button_1 = QPushButton(self)
+        button_2 = QPushButton(self)
+        button_3 = QPushButton(self)
+        button_4 = QPushButton(self)
+        button_5 = QPushButton(self)
+        button_6 = QPushButton(self)
+        button_7 = QPushButton(self)
+        button_8 = QPushButton(self)
+
+        buttons = (button_1, button_2, button_3, button_4, button_5, button_6, button_7, button_8)
+
         for idx, lesson in enumerate(passed_lessons):
 
             if lesson is not None:
@@ -505,85 +511,49 @@ class MainWindow(QMainWindow):
                 text = QLabel("Placeholder\nUnknown Description\nID: ??\nCompleted: N/A")
                 data = ''
 
-            if idx == 0:
+            if idx == 0 or idx == 1:
                 left_layout.addWidget(text)
-                button_1 = QPushButton('Start lesson', self)
-                left_layout.addWidget(button_1)
-
                 if passed_lessons[idx] is None or data[7] == 'True':
-                    button_1.setDisabled(True)
+                    buttons[idx].setText('Lesson complete')
+                    buttons[idx].setDisabled(True)
                 else:
-                    button_1.setDisabled(False)
+                    buttons[idx].setText('Start lesson')
+                    buttons[idx].setDisabled(False)
 
-            elif idx == 1:
-                left_layout.addWidget(text)
-                button_2 = QPushButton('Start lesson', self)
-                left_layout.addWidget(button_2)
+                left_layout.addWidget(buttons[idx])
 
-                if passed_lessons[idx] is None or data[7] == 'True':
-                    button_2.setDisabled(True)
-                else:
-                    button_2.setDisabled(False)
-
-            elif idx == 2:
+            elif idx == 2 or idx == 3:
                 second_left_layout.addWidget(text)
-                button_3 = QPushButton('Start lesson', self)
-                second_left_layout.addWidget(button_3)
-
                 if passed_lessons[idx] is None or data[7] == 'True':
-                    button_3.setDisabled(True)
+                    buttons[idx].setText('Lesson complete')
+                    buttons[idx].setDisabled(True)
                 else:
-                    button_3.setDisabled(False)
+                    buttons[idx].setText('Start lesson')
+                    buttons[idx].setDisabled(False)
 
-            elif idx == 3:
-                second_left_layout.addWidget(text)
-                button_4 = QPushButton('Start lesson', self)
-                second_left_layout.addWidget(button_4)
+                second_left_layout.addWidget(buttons[idx])
 
-                if passed_lessons[idx] is None or data[7] == 'True':
-                    button_4.setDisabled(True)
-                else:
-                    button_4.setDisabled(False)
-
-            elif idx == 4:
+            elif idx == 4 or idx == 5:
                 right_layout.addWidget(text)
-                button_5 = QPushButton('Start lesson', self)
-                right_layout.addWidget(button_5)
-
                 if passed_lessons[idx] is None or data[7] == 'True':
-                    button_5.setDisabled(True)
+                    buttons[idx].setText('Lesson complete')
+                    buttons[idx].setDisabled(True)
                 else:
-                    button_5.setDisabled(False)
+                    buttons[idx].setText('Start lesson')
+                    buttons[idx].setDisabled(False)
 
-            elif idx == 5:
-                right_layout.addWidget(text)
-                button_6 = QPushButton('Start lesson', self)
-                right_layout.addWidget(button_6)
+                right_layout.addWidget(buttons[idx])
 
-                if passed_lessons[idx] is None or data[7] == 'True':
-                    button_6.setDisabled(True)
-                else:
-                    button_6.setDisabled(False)
-
-            elif idx == 6:
+            elif idx == 6 or idx == 7:
                 second_right_layout.addWidget(text)
-                button_7 = QPushButton('Start lesson', self)
-                second_right_layout.addWidget(button_7)
-
                 if passed_lessons[idx] is None or data[7] == 'True':
-                    button_7.setDisabled(True)
+                    buttons[idx].setText('Lesson complete')
+                    buttons[idx].setDisabled(True)
                 else:
-                    button_7.setDisabled(False)
+                    buttons[idx].setText('Start lesson')
+                    buttons[idx].setDisabled(False)
 
-            elif idx == 7:
-                second_right_layout.addWidget(text)
-                button_8 = QPushButton('Start lesson', self)
-                second_right_layout.addWidget(button_8)
-
-                if passed_lessons[idx] is None or data[7] == 'True':
-                    button_8.setDisabled(True)
-                else:
-                    button_8.setDisabled(False)
+                second_right_layout.addWidget(buttons[idx])
 
 
         if total_pages is None or total_pages == 0:
@@ -732,6 +702,7 @@ class MainWindow(QMainWindow):
                 print(fe)
                 print()
                 create_json()
+                data = []
 
             except JSONDecodeError:
                 with open(file_path, 'w', encoding="utf-8") as file:
@@ -767,10 +738,18 @@ class MainWindow(QMainWindow):
 
         def get_board_type():
             board_types = get_total_pages()[0]
-            self.leaderboard_type = str(board_types[self.leaderboard_page - 1])
+            try:
+                self.leaderboard_type = str(board_types[self.leaderboard_page - 1])
+            except IndexError as ie:
+                self.log_error(ie)
+                print(ie)
+                self.show_message_box('error', 'Leaderboard', 'Unable to initialise the leaderboard!\nThis is due to no known players being on the leaderboard.')
+                return 'Error'
 
         total_pages = int(get_total_pages()[1])
-        get_board_type()
+        status = get_board_type()
+        if status == 'Error':
+            return None
 
         badge_for_ranking = {
             1:'🏆',
@@ -795,7 +774,7 @@ class MainWindow(QMainWindow):
         subtitle.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         title_layout.addWidget(subtitle, alignment=Qt.AlignmentFlag.AlignHCenter)
 
-        data = get_top_n_users(str(self.get_appdata_path() + '\\leaderboards.json'), str(self.leaderboard_type), 10)
+        data = get_top_n_users(str(get_appdata_path() + '\\leaderboards.json'), str(self.leaderboard_type), 10)
 
         for idx, part in enumerate(data, start=1):
             try:
@@ -922,6 +901,7 @@ class MainWindow(QMainWindow):
         desc = QLabel(str(lesson['description']), self)
 
         content = QLabel(str(lesson['content']).replace('\\n', '\n'), self)
+        content.setWordWrap(True)
         options = QLabel(str(options_text), self)
         self.user_input = QPlainTextEdit(self)
         self.submit = QPushButton('Submit', self)
@@ -932,10 +912,10 @@ class MainWindow(QMainWindow):
         layout.addWidget(desc, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         layout.addStretch(1)
-        layout.addWidget(content, alignment=Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(content)
         layout.addStretch(1)
         layout.addWidget(options, alignment=Qt.AlignmentFlag.AlignLeft)
-        layout.addWidget(self.user_input, alignment=Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(self.user_input)
         layout.addStretch(1)
         layout.addWidget(self.submit)
         layout.addWidget(go_back)
@@ -956,12 +936,11 @@ class MainWindow(QMainWindow):
             QLabel{
                 color: black;
                 font-weight: bold;
+                font-size: 20px;
             }
             QLabel#title{
                 font-size: 45px;
-            }
-            QLabel#desc{
-                font-size: 20px;
+                text-decoration: underline;
             }
             QPlainTextEdit{
                 background-color: white;
@@ -1073,9 +1052,24 @@ class MainWindow(QMainWindow):
                 self.log_error(e)
                 print(e)
 
+        def reset_leaderboard():
+            file_path = get_appdata_path() + '\\leaderboards.json'
+
+            try:
+                with open(file_path, 'w') as f:
+                    f.write('')
+
+                self.show_message_box('info', 'Leaderboard deletion', 'All leaderboard data has successfully been deleted.')
+                self.log_error('All leaderboard data was successfully deleted.')
+
+            except (FileNotFoundError, PermissionError) as e:
+                self.log_error(e)
+                print(e)
+
         def delete_all_data():
-            clear_log()
             delete_lessons()
+            reset_leaderboard()
+            clear_log()
             self.lessons_completed = 0
             self.points = 0
 
@@ -1114,15 +1108,18 @@ class MainWindow(QMainWindow):
 
         clear_log_button = QPushButton('Clear Logs ⚠️', self)
         clear_lessons_button = QPushButton('Delete ALL Lessons 🗑️', self)
+        reset_leaderboard_button = QPushButton('Reset Leaderboard 🔄️🏆', self)
         clear_all_data = QPushButton('Reset ALL data 🚫', self)
 
         points_earned = QLabel(f'Points: {self.points:,.2f}', self)
         lessons_completed = QLabel(f"Lessons completed: {self.lessons_completed:,}", self)
+        connection_status = QLabel(f"Connection Status: {'Connected 🛜' if connectmod.is_connected() else 'Disconnected ❌'}")
         print(self.points)
         print(self.lessons_completed)
 
         points_earned.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         lessons_completed.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        connection_status.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
         self.server_ip_text = QLineEdit(self)
         self.server_ip_text.setPlaceholderText('Enter SERVER IP')
@@ -1150,8 +1147,10 @@ class MainWindow(QMainWindow):
         layout.addSpacing(1)
         layout.addWidget(points_earned, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(lessons_completed, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(connection_status, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(clear_log_button)
         layout.addWidget(clear_lessons_button)
+        layout.addWidget(reset_leaderboard_button)
         layout.addWidget(clear_all_data)
         layout.addSpacing(2)
         layout.addWidget(self.server_ip_text)
@@ -1164,6 +1163,7 @@ class MainWindow(QMainWindow):
         clear_log_button.setObjectName('clear_log')
         points_earned.setObjectName('points_earned')
         lessons_completed.setObjectName('lessons_completed')
+        connection_status.setObjectName('connection_status')
 
         self.setStyleSheet("""
                             QMainWindow{
@@ -1181,6 +1181,9 @@ class MainWindow(QMainWindow):
                                 font-size: 35px;
                             }
                             QLabel#lessons_completed{
+                                font-size: 35px;
+                            }
+                            QLabel#connection_status{
                                 font-size: 35px;
                             }
                             QPushButton{
@@ -1228,6 +1231,7 @@ class MainWindow(QMainWindow):
         clear_log_button.clicked.connect(clear_log)
         clear_lessons_button.clicked.connect(delete_lessons)
         clear_all_data.clicked.connect(delete_all_data)
+        reset_leaderboard_button.clicked.connect(reset_leaderboard)
 
     def press_button(self, id_l, max_points=0):
         if str(self.user_input.toPlainText()).replace('"', "'").rstrip() == self.answer.rstrip():
