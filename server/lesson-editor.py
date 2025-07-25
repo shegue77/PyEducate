@@ -1,12 +1,15 @@
+# Copyright (C) 2025 shegue77
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # ------------------------------------------------------[ DEPENDENCIES ]-----------------------------------------------------
 from sys import argv as sys_argv, exit as sys_exit
 from json import load, loads, dump, dumps, JSONDecodeError
 from os import getenv, makedirs
 from datetime import datetime
-from os.path import exists as os_path_exists
+from os.path import exists as os_path_exists, expanduser
 from PySide6.QtWidgets import QMainWindow, QWidget, QLineEdit, QLabel, QPushButton, QApplication, QVBoxLayout, QPlainTextEdit
 from PySide6.QtGui import Qt
+from platform import system
 # ----------------------------------------------------------------------------------------------------------------------------
 
 
@@ -23,7 +26,13 @@ class Editor(QMainWindow):
     # Function gets the full path to APPDATA.
     @staticmethod
     def get_appdata_path():
-        path_to_appdata = getenv('APPDATA')
+        user_os = system()
+        if user_os == 'Windows':
+            path_to_appdata = getenv('APPDATA')
+        elif user_os == 'Darwin':
+            path_to_appdata = expanduser('~/Library/Application Support')
+        else:
+            path_to_appdata = getenv('XDG_DATA_HOME', expanduser('~/.local/share'))
         if os_path_exists(path_to_appdata + "\\PyEducate"):
             if os_path_exists(path_to_appdata + "\\PyEducate\\server"):
                 full_path_data = path_to_appdata + "\\PyEducate\\server"
