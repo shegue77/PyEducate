@@ -71,6 +71,9 @@ git checkout -b your-feature-branch
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Install testing dependencies
+pip install -r requirements-dev.txt
 ```
 
 That's it! Your local development environment is ready.
@@ -82,6 +85,11 @@ Here's the recommended workflow for making changes:
 ```bash
 # Make your changes to the code
 # ...
+
+# Run tests
+black .     # Reformats your code to make style clearer (Required)
+mypy .      # Checks for any type hint errors (Required)
+flake8 .    # Checks for any other issues (Optional but recommended)
 
 # Commit your changes
 git add .
