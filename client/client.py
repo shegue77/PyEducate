@@ -1,6 +1,5 @@
 # Copyright (C) 2025 shegue77
 # SPDX-License-Identifier: GPL-3.0-or-later
-__version__ = '1.0.0-rc0'
 
 # ---------------------------[ DEPENDENCIES ]---------------------------
 from sys import argv as sys_argv, exit as sys_exit
@@ -8,44 +7,57 @@ from json import load as json_load, dump, JSONDecodeError
 from threading import Thread
 from time import sleep
 from os import getenv, makedirs
-from os.path import exists as os_path_exists, expanduser
+from os.path import exists as os_path_exists, expanduser, join
 from datetime import datetime
 from platform import system
 
 import connectmod
-from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget,
-                               QLabel,
-                               QPlainTextEdit, QVBoxLayout, QPushButton,
-                               QLineEdit, QHBoxLayout, QMessageBox,
-                               QStyle, QSizePolicy)
+from PySide6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QLabel,
+    QPlainTextEdit,
+    QVBoxLayout,
+    QPushButton,
+    QLineEdit,
+    QHBoxLayout,
+    QMessageBox,
+    QStyle,
+    QSizePolicy,
+)
 from PySide6.QtGui import Qt
 from PySide6.QtCore import QSize
+
 # ----------------------------------------------------------------------
 
-def get_appdata_path():
-    user_os =  system()
-    if user_os == 'Windows':
-        path_to_appdata = getenv('APPDATA')
-    elif user_os == 'Darwin':
-        path_to_appdata = expanduser('~/Library/Application Support')
-    else:
-        path_to_appdata = getenv('XDG_DATA_HOME', expanduser('~/.local/share'))
 
-    if os_path_exists(path_to_appdata + "\\PyEducate"):
-        if os_path_exists(path_to_appdata + "\\PyEducate\\client"):
-            full_path_data = path_to_appdata + "\\PyEducate\\client"
-        else:
-            makedirs(path_to_appdata + "\\PyEducate\\client")
-            full_path_data = path_to_appdata + "\\PyEducate\\client"
+def get_appdata_path():
+    user_os = system()
+    if user_os == "Windows":
+        path_to_appdata = getenv("APPDATA")
+    elif user_os == "Darwin":
+        path_to_appdata = expanduser("~/Library/Application Support")
     else:
-        makedirs(path_to_appdata + "\\PyEducate")
-        makedirs(path_to_appdata + "\\PyEducate\\client")
-        full_path_data = path_to_appdata + "\\PyEducate\\client"
+        path_to_appdata = getenv("XDG_DATA_HOME", expanduser("~/.local/share"))
+
+    if os_path_exists(join(path_to_appdata, "PyEducate")):
+        if os_path_exists((join(path_to_appdata, "PyEducate", "client"))):
+            full_path_data = join(path_to_appdata, "PyEducate", "client")
+        else:
+            full_path_data = join(path_to_appdata, "PyEducate", "client")
+            makedirs(full_path_data)
+    else:
+        makedirs(join(path_to_appdata, "PyEducate"))
+        makedirs(join(path_to_appdata, "PyEducate", "client"))
+        full_path_data = join(path_to_appdata, "PyEducate", "client")
 
     return full_path_data
 
+
 def disconnect():
     connectmod.close_client()
+
 
 def attempt_connect_loop(SERVER_IP, SERVER_PORT, IP_TYPE):
     while True:
@@ -63,35 +75,37 @@ def attempt_connect_loop(SERVER_IP, SERVER_PORT, IP_TYPE):
 
 
 try:
-    with open(f'{get_appdata_path()}\\connect-data.txt', 'r', encoding='utf-8') as f:
+    with open(join(get_appdata_path(), "connect-data.txt"), "r", encoding="utf-8") as f:
         data = f.read().strip().split()
         SERVER_IP = str(data[0])
         SERVER_PORT = int(data[1])
         IP_TYPE = str(data[2])
 
-    Thread(target=attempt_connect_loop,
-                    args=(SERVER_IP, SERVER_PORT, IP_TYPE), daemon=True).start()
+    Thread(
+        target=attempt_connect_loop, args=(SERVER_IP, SERVER_PORT, IP_TYPE), daemon=True
+    ).start()
 
 except FileNotFoundError as fe:
-    print(f'[!!] Connect data not found!\n{fe}')
+    print(f"[!!] Connect data not found!\n{fe}")
 
 except (ValueError, TypeError, IndexError) as ve:
-    print(f'[!!] Corrupted data!\n{ve}')
-    with open(f'{get_appdata_path()}\\connect-data.txt', 'w', encoding='utf-8') as f:
-        f.write('')
+    print(f"[!!] Corrupted data!\n{ve}")
+    with open(join(get_appdata_path(), "connect-data.txt"), "w", encoding="utf-8") as f:
+        f.write("")
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('PyEducate: School Edition')
+        self.setWindowTitle("PyEducate: School Edition")
         self.setContentsMargins(20, 20, 20, 20)
         self.data = None
         self.page = 1
-        self.points = 0
+        self.points = 0.0
         self.lessons_completed = 0
         self.lesson_attempt = 1
         self.leaderboard_page = 1
-        self.leaderboard_type = 'points'
+        self.leaderboard_type = "points"
 
         self.reload_json()
         self.search()
@@ -104,11 +118,11 @@ class MainWindow(QMainWindow):
         event.accept()
 
     def save_data(self):
-        file_path = str(get_appdata_path() + '\\SAVE_DATA')
-        with open(file_path, 'w', encoding='utf-8') as f:
-            data = f'{str(self.points)} {str(self.lessons_completed)}'
+        file_path = str(join(get_appdata_path(), "SAVE_DATA"))
+        with open(file_path, "w", encoding="utf-8") as f:
+            data = f"{str(self.points)} {str(self.lessons_completed)}"
             f.write(data)
-        print('Point data saved successfully')
+        print("Point data saved successfully")
 
     @staticmethod
     def log_error(data):
@@ -116,31 +130,32 @@ class MainWindow(QMainWindow):
         # Get current time
         now = datetime.now()
         timestamp = now.strftime("%d-%m-%Y %H:%M:%S")
-        log_path = str(get_appdata_path() + '\\client.log')
+        log_path = str(join(get_appdata_path(), "client.log"))
 
-        data = str(timestamp + ' ' + str(data) + '\n')
+        data = str(timestamp + " " + str(data) + "\n")
 
         try:
-            with open(log_path, 'a', encoding='utf-8') as f:
+            with open(log_path, "a", encoding="utf-8") as f:
                 f.write(data)
 
         except FileNotFoundError:
-            with open(log_path, 'w', encoding='utf-8') as f:
+            with open(log_path, "w", encoding="utf-8") as f:
                 f.write(data)
 
         except PermissionError:
-            print(f'[!] Insufficient permissions!\nUnable to log data at {log_path}!')
+            print(f"[!] Insufficient permissions!\nUnable to log data at {log_path}!")
 
     def show_message_box(self, mode, title, text):
 
-        if mode == 'warning':
+        if mode == "warning":
             msg_box = QMessageBox()
             msg_box.setWindowTitle(str(title))
             msg_box.setText(str(text))
             msg_box.setContentsMargins(20, 20, 20, 20)
             msg_box.setIcon(QMessageBox.Warning)
             msg_box.setDefaultButton(QMessageBox.Ok)
-            msg_box.setStyleSheet("""
+            msg_box.setStyleSheet(
+                """
                         QWidget{
                             background-color: white;
                         }
@@ -154,18 +169,20 @@ class MainWindow(QMainWindow):
                             color: black;
                             font-weight: bold;
                         }
-                    """)
+                    """
+            )
 
             msg_box.exec()
 
-        elif mode == 'error':
+        elif mode == "error":
             msg_box = QMessageBox()
             msg_box.setWindowTitle(str(title))
             msg_box.setText(str(text))
             msg_box.setContentsMargins(20, 20, 20, 20)
             msg_box.setIcon(QMessageBox.Critical)
             msg_box.setDefaultButton(QMessageBox.Ok)
-            msg_box.setStyleSheet("""
+            msg_box.setStyleSheet(
+                """
                                     QWidget{
                                         background-color: white;
                                     }
@@ -179,18 +196,20 @@ class MainWindow(QMainWindow):
                                         color: black;
                                         font-weight: bold;
                                     }
-                                """)
+                                """
+            )
 
             msg_box.exec()
 
-        elif mode == 'info':
+        elif mode == "info":
             msg_box = QMessageBox()
             msg_box.setWindowTitle(str(title))
             msg_box.setText(str(text))
             msg_box.setContentsMargins(20, 20, 20, 20)
             msg_box.setIcon(QMessageBox.Information)
             msg_box.setDefaultButton(QMessageBox.Ok)
-            msg_box.setStyleSheet("""
+            msg_box.setStyleSheet(
+                """
                                     QWidget{
                                         background-color: white;
                                     }
@@ -204,108 +223,109 @@ class MainWindow(QMainWindow):
                                         color: black;
                                         font-weight: bold;
                                     }
-                                """)
+                                """
+            )
 
             msg_box.exec()
 
     def reload_json(self):
-        file_path = f'{get_appdata_path()}\\lessons.json'
+        file_path = join(get_appdata_path(), "lessons.json")
         try:
-            with open(file_path, 'r', encoding="utf-8") as file:
+            with open(file_path, "r", encoding="utf-8") as file:
                 self.data = json_load(file)
-                print('reloaded lessons.json')
+                print("reloaded lessons.json")
 
         except FileNotFoundError as fe:
             self.log_error(fe)
             print(fe)
             print()
-            makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
+            makedirs(join(get_appdata_path(), "images"), exist_ok=True)
             if not os_path_exists(file_path):
-                with open(file_path, 'w', encoding="utf-8") as file:
-                    data = {"lessons":[]}
+                with open(file_path, "w", encoding="utf-8") as file:
+                    data = {"lessons": []}
                     dump(data, file)
-                    print('reloaded')
+                    print("reloaded")
 
         except JSONDecodeError:
-            with open(file_path, 'w', encoding="utf-8") as file:
+            with open(file_path, "w", encoding="utf-8") as file:
                 data = {"lessons": []}
                 dump(data, file)
-                print('reloaded')
+                print("reloaded")
 
     def submit_id_data(self, id_n):
 
-        status = 'Fail'
-        file_path = f'{get_appdata_path()}\\lessons.json'
-        for lesson in self.data['lessons']:
-            if int(lesson['id']) == int(id_n):
+        status = "Fail"
+        file_path = join(get_appdata_path(), "lessons.json")
+        for lesson in self.data["lessons"]:
+            if int(lesson["id"]) == int(id_n):
                 correct_lesson = lesson
-                status = 'Success'
+                status = "Success"
                 break
 
             try:
-                with open(file_path, 'r', encoding="utf-8") as file:
+                with open(file_path, "r", encoding="utf-8") as file:
                     self.data = json_load(file)
-                    print('reloaded')
+                    print("reloaded")
 
             except FileNotFoundError as fe:
                 self.log_error(fe)
                 print(fe)
                 print()
-                makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
+                makedirs(join(get_appdata_path(), "images"), exist_ok=True)
                 if not os_path_exists(file_path):
-                    with open(file_path, 'w', encoding="utf-8") as file:
-                        data = {"lessons":[]}
+                    with open(file_path, "w", encoding="utf-8") as file:
+                        data = {"lessons": []}
                         dump(data, file)
 
             except Exception as e:
-                with open(file_path, 'r', encoding="utf-8") as file:
+                with open(file_path, "r", encoding="utf-8") as file:
                     self.data = json_load(file)
-                    print('reloaded')
+                    print("reloaded")
                 print(e)
                 break
 
-        if status == 'Success':
+        if status == "Success":
             self._init_lesson(correct_lesson)
         else:
             try:
-                with open(file_path, 'r', encoding="utf-8") as file:
+                with open(file_path, "r", encoding="utf-8") as file:
                     self.data = json_load(file)
-                    print('reloaded')
+                    print("reloaded")
 
             except FileNotFoundError as fe:
                 self.log_error(fe)
                 print(fe)
                 print()
-                makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
+                makedirs(join(get_appdata_path(), "images"), exist_ok=True)
                 if not os_path_exists(file_path):
-                    with open(file_path, 'w', encoding="utf-8") as file:
-                        data = {"lessons":[]}
+                    with open(file_path, "w", encoding="utf-8") as file:
+                        data = {"lessons": []}
                         dump(data, file)
 
             except JSONDecodeError:
-                with open(file_path, 'w', encoding="utf-8") as file:
+                with open(file_path, "w", encoding="utf-8") as file:
                     data = {"lessons": []}
                     dump(data, file)
 
     def get_lessons_for_page(self, page_number):
-        file_path = f'{get_appdata_path()}\\lessons.json'
+        file_path = join(get_appdata_path(), "lessons.json")
         try:
-            with open(file_path, 'r', encoding="utf-8") as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json_load(f)
 
         except FileNotFoundError as fe:
             self.log_error(fe)
             print(fe)
             print()
-            makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
+            makedirs(join(get_appdata_path(), "images"), exist_ok=True)
             if not os_path_exists(file_path):
-                with open(file_path, 'w', encoding="utf-8") as file:
-                    data = {"lessons":[]}
+                with open(file_path, "w", encoding="utf-8") as file:
+                    data = {"lessons": []}
                     dump(data, file)
             return []
 
         except JSONDecodeError:
-            with open(file_path, 'w', encoding="utf-8") as file:
+            with open(file_path, "w", encoding="utf-8") as file:
                 data = {"lessons": []}
                 dump(data, file)
 
@@ -324,14 +344,15 @@ class MainWindow(QMainWindow):
         return ids
 
     def list_lesson_ids(self):
-        file_path = f'{get_appdata_path()}\\lessons.json'
+        file_path = join(get_appdata_path(), "lessons.json")
+
         def create_json():
-            with open(file_path, 'w', encoding="utf-8") as file:
-                json_data = {"lessons":[]}
+            with open(file_path, "w", encoding="utf-8") as file:
+                json_data = {"lessons": []}
                 dump(json_data, file, indent=4)
 
         try:
-            with open(file_path, 'r', encoding="utf-8") as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json_load(f)
 
         except FileNotFoundError as fe:
@@ -342,7 +363,7 @@ class MainWindow(QMainWindow):
             return 1
 
         except JSONDecodeError:
-            with open(file_path, 'w', encoding="utf-8") as file:
+            with open(file_path, "w", encoding="utf-8") as file:
                 data = {"lessons": []}
                 dump(data, file)
 
@@ -359,45 +380,47 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def find_lesson(lesson_id):
-        file_path = f'{get_appdata_path()}\\lessons.json'
+        file_path = join(get_appdata_path(), "lessons.json")
         try:
-            with open(file_path, 'r', encoding="utf-8") as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json_load(f)
         except FileNotFoundError as fe:
             print(fe)
             print()
-            makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
+            makedirs(join(get_appdata_path(), "images"), exist_ok=True)
             if not os_path_exists(file_path):
-                with open(file_path, 'w', encoding="utf-8") as file:
-                    data = {"lessons":[]}
+                with open(file_path, "w", encoding="utf-8") as file:
+                    data = {"lessons": []}
                     dump(data, file)
                 return None
 
         except JSONDecodeError:
-            with open(file_path, 'w', encoding="utf-8") as file:
+            with open(file_path, "w", encoding="utf-8") as file:
                 data = {"lessons": []}
                 dump(data, file)
 
-        for lesson in data['lessons']:
+        for lesson in data["lessons"]:
             try:
-                if int(lesson['id']) == int(lesson_id):
+                if int(lesson["id"]) == int(lesson_id):
                     try:
-                        is_complete = str(lesson['completed'])
+                        is_complete = str(lesson["completed"])
                     except Exception as e:
-                        is_complete = 'False'
+                        is_complete = "False"
                         print(e)
 
-                    for quiz in lesson['quiz']:  # Loop over the quiz list
-                        print(quiz['question'])
+                    for quiz in lesson["quiz"]:  # Loop over the quiz list
+                        print(quiz["question"])
 
-                        return (str(lesson['id']),
-                                str(lesson['title']),
-                                str(lesson['image']),
-                                str(lesson['description']),
-                                str(lesson['content']),
-                                str(quiz['question']),
-                                str(quiz['answer']),
-                                str(is_complete))
+                        return (
+                            str(lesson["id"]),
+                            str(lesson["title"]),
+                            str(lesson["image"]),
+                            str(lesson["description"]),
+                            str(lesson["content"]),
+                            str(quiz["question"]),
+                            str(quiz["answer"]),
+                            str(is_complete),
+                        )
 
             except Exception as e:
                 print(e)
@@ -407,26 +430,28 @@ class MainWindow(QMainWindow):
         pass
 
     def search(self):
-        save_data_path = str(get_appdata_path() + '\\SAVE_DATA')
+        save_data_path = join(get_appdata_path(), "SAVE_DATA")
         try:
-            with open(save_data_path, 'r', encoding='utf-8') as f:
+            with open(save_data_path, "r", encoding="utf-8") as f:
                 save_data = f.read().strip().split()
-                self.points = int(save_data[0])
+                self.points = float(save_data[0])
                 self.lessons_completed = int(save_data[1])
 
         except FileNotFoundError as fe:
             self.log_error(fe)
-            with open(save_data_path, 'w', encoding='utf-8') as f:
-                f.write('0 0')
+            with open(save_data_path, "w", encoding="utf-8") as f:
+                f.write("0 0")
 
         except IndexError as ie:
-            self.points = 0
+            self.points = 0.0
             self.lessons_completed = 0
             self.log_error(ie)
 
         def reload_ui():
             self.search()
-            self.show_message_box('info', 'Lesson Reload', 'Successfully reloaded lessons.')
+            self.show_message_box(
+                "info", "Lesson Reload", "Successfully reloaded lessons."
+            )
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -478,14 +503,14 @@ class MainWindow(QMainWindow):
         page_layout = QHBoxLayout(self)
         bottom_layout = QVBoxLayout(self)
 
-        title_label = QLabel('PyEducate', self)
+        title_label = QLabel("PyEducate", self)
         title_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         top_layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignHCenter)
 
-        reload_lessons = QPushButton('Reload lessons 🔄️', self)
+        reload_lessons = QPushButton("Reload lessons 🔄️", self)
         second_top_layout.addWidget(reload_lessons)
 
-        show_leaderboard = QPushButton('Leaderboard 🏆', self)
+        show_leaderboard = QPushButton("Leaderboard 🏆", self)
         second_top_layout.addWidget(show_leaderboard)
 
         while True:
@@ -503,7 +528,16 @@ class MainWindow(QMainWindow):
         button_7 = QPushButton(self)
         button_8 = QPushButton(self)
 
-        buttons = (button_1, button_2, button_3, button_4, button_5, button_6, button_7, button_8)
+        buttons = (
+            button_1,
+            button_2,
+            button_3,
+            button_4,
+            button_5,
+            button_6,
+            button_7,
+            button_8,
+        )
 
         for idx, lesson in enumerate(passed_lessons):
 
@@ -511,7 +545,9 @@ class MainWindow(QMainWindow):
                 data = self.find_lesson(lesson)
                 print(data[1])
                 try:
-                    text = QLabel(f"{data[1]}\n{data[3]}\nID: {data[0]}\nCompleted: {data[7]}")
+                    text = QLabel(
+                        f"{data[1]}\n{data[3]}\nID: {data[0]}\nCompleted: {data[7]}"
+                    )
 
                 except TypeError as te:
                     self.log_error(te)
@@ -521,53 +557,54 @@ class MainWindow(QMainWindow):
                 text.setWordWrap(True)
 
             else:
-                text = QLabel("Placeholder\nUnknown Description\nID: ??\nCompleted: N/A")
-                data = ''
+                text = QLabel(
+                    "Placeholder\nUnknown Description\nID: ??\nCompleted: N/A"
+                )
+                data = ""
 
             if idx in (0, 1):
                 left_layout.addWidget(text)
-                if passed_lessons[idx] is None or data[7] == 'True':
-                    buttons[idx].setText('Lesson complete')
+                if passed_lessons[idx] is None or data[7] == "True":
+                    buttons[idx].setText("Lesson complete")
                     buttons[idx].setDisabled(True)
                 else:
-                    buttons[idx].setText('Start lesson')
+                    buttons[idx].setText("Start lesson")
                     buttons[idx].setDisabled(False)
 
                 left_layout.addWidget(buttons[idx])
 
             elif idx in (2, 3):
                 second_left_layout.addWidget(text)
-                if passed_lessons[idx] is None or data[7] == 'True':
-                    buttons[idx].setText('Lesson complete')
+                if passed_lessons[idx] is None or data[7] == "True":
+                    buttons[idx].setText("Lesson complete")
                     buttons[idx].setDisabled(True)
                 else:
-                    buttons[idx].setText('Start lesson')
+                    buttons[idx].setText("Start lesson")
                     buttons[idx].setDisabled(False)
 
                 second_left_layout.addWidget(buttons[idx])
 
             elif idx in (4, 5):
                 right_layout.addWidget(text)
-                if passed_lessons[idx] is None or data[7] == 'True':
-                    buttons[idx].setText('Lesson complete')
+                if passed_lessons[idx] is None or data[7] == "True":
+                    buttons[idx].setText("Lesson complete")
                     buttons[idx].setDisabled(True)
                 else:
-                    buttons[idx].setText('Start lesson')
+                    buttons[idx].setText("Start lesson")
                     buttons[idx].setDisabled(False)
 
                 right_layout.addWidget(buttons[idx])
 
             elif idx in (6, 7):
                 second_right_layout.addWidget(text)
-                if passed_lessons[idx] is None or data[7] == 'True':
-                    buttons[idx].setText('Lesson complete')
+                if passed_lessons[idx] is None or data[7] == "True":
+                    buttons[idx].setText("Lesson complete")
                     buttons[idx].setDisabled(True)
                 else:
-                    buttons[idx].setText('Start lesson')
+                    buttons[idx].setText("Start lesson")
                     buttons[idx].setDisabled(False)
 
                 second_right_layout.addWidget(buttons[idx])
-
 
         if total_pages is None or total_pages == 0:
             total_pages = 1
@@ -580,7 +617,7 @@ class MainWindow(QMainWindow):
 
         next_page = QPushButton(self)
 
-        settings = QPushButton('⚙️ Settings', self)
+        settings = QPushButton("⚙️ Settings", self)
         bottom_layout.addWidget(settings)
 
         icon_size = QSize(48, 48)
@@ -618,9 +655,10 @@ class MainWindow(QMainWindow):
         all_layouts.addLayout(page_layout)
         all_layouts.addLayout(bottom_layout)
 
-        title_label.setObjectName('title')
+        title_label.setObjectName("title")
 
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
                     QMainWindow{
                         background-color: white;
                     }
@@ -655,7 +693,8 @@ class MainWindow(QMainWindow):
                         border: 1px solid;
                         border-radius: 5px;
                     }
-                """)
+                """
+        )
 
         central.setLayout(all_layouts)
 
@@ -686,29 +725,31 @@ class MainWindow(QMainWindow):
         def read_leaderboard(filename):
             if not os_path_exists(filename):
                 # Create empty file if it doesn't exist
-                with open(filename, 'w', encoding='utf-8') as f:
+                with open(filename, "w", encoding="utf-8") as f:
                     dump([], f)
                 return []
 
-            with open(filename, 'r', encoding='utf-8') as f:
+            with open(filename, "r", encoding="utf-8") as f:
                 return json_load(f)
 
-        def get_top_n_users(filename, type_n='points', n=10):
+        def get_top_n_users(filename, type_n="points", n=10):
             leaderboard = read_leaderboard(filename)
             # Sort by points descending
-            sorted_leaderboard = sorted(leaderboard, key=lambda x: x[type_n], reverse=True)
+            sorted_leaderboard = sorted(
+                leaderboard, key=lambda x: x[type_n], reverse=True
+            )
             return sorted_leaderboard[:n]
 
         def get_total_pages():
-            file_path = str(get_appdata_path() + '\\leaderboards.json')
+            file_path = join(get_appdata_path(), "leaderboards.json")
 
             def create_json():
-                with open(file_path, 'w', encoding="utf-8") as file:
+                with open(file_path, "w", encoding="utf-8") as file:
                     json_data = []
                     dump(json_data, file, indent=4)
 
             try:
-                with open(file_path, 'r', encoding="utf-8") as f:
+                with open(file_path, "r", encoding="utf-8") as f:
                     data = json_load(f)
 
             except FileNotFoundError as fe:
@@ -718,7 +759,7 @@ class MainWindow(QMainWindow):
                 data = []
 
             except JSONDecodeError:
-                with open(file_path, 'w', encoding="utf-8") as file:
+                with open(file_path, "w", encoding="utf-8") as file:
                     data = []
                     dump(data, file)
 
@@ -726,7 +767,7 @@ class MainWindow(QMainWindow):
 
             for part in data:
                 for i in part.keys():
-                    if i != 'username':
+                    if i != "username":
                         leaderboard_items.append(i)
                 break
 
@@ -756,23 +797,25 @@ class MainWindow(QMainWindow):
             except IndexError as ie:
                 self.log_error(ie)
                 print(ie)
-                self.show_message_box('error',
-        'Leaderboard',
-        'Unable to initialise the leaderboard!\n'
-        'This is due to no known players being on the leaderboard.')
-                return 'Error'
+                self.show_message_box(
+                    "error",
+                    "Leaderboard",
+                    "Unable to initialise the leaderboard!\n"
+                    "This is due to no known players being on the leaderboard.",
+                )
+                return "Error"
 
         total_pages = int(get_total_pages()[1])
         status = get_board_type()
-        if status == 'Error':
+        if status == "Error":
             return None
 
         badge_for_ranking = {
-            1:'🏆',
-            2:'🥇',
-            3:'🥈',
-            4:'🥉',
-            5:'🎖️',
+            1: "🏆",
+            2: "🥇",
+            3: "🥈",
+            4: "🥉",
+            5: "🎖️",
         }
 
         all_layouts = QVBoxLayout()
@@ -783,24 +826,32 @@ class MainWindow(QMainWindow):
         central = QWidget()
         self.setCentralWidget(central)
 
-        title = QLabel('Leaderboard 🏆')
+        title = QLabel("Leaderboard 🏆")
         title.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         title_layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
-        subtitle = QLabel(f'Top 10 by {str(self.leaderboard_type).replace('_', ' ').lower().capitalize()}')
+        subtitle = QLabel(
+            f"Top 10 by {str(self.leaderboard_type).replace('_', ' ').lower().capitalize()}"
+        )
         subtitle.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         title_layout.addWidget(subtitle, alignment=Qt.AlignmentFlag.AlignHCenter)
 
-        data = get_top_n_users(str(get_appdata_path() + '\\leaderboards.json'), str(self.leaderboard_type), 10)
+        data = get_top_n_users(
+            join(get_appdata_path(), "leaderboards.json"),
+            str(self.leaderboard_type),
+            10,
+        )
 
         for idx, part in enumerate(data, start=1):
             try:
                 badge = badge_for_ranking[idx]
             except IndexError:
-                badge = ''
+                badge = ""
 
-            person = QLabel(f'{badge} {idx}. Username: {part["username"]}  |  '
-            f'{str(self.leaderboard_type).strip().replace('_', ' ').lower().capitalize()}: '
-            f'{part[str(self.leaderboard_type.strip())]:,.2f}')
+            person = QLabel(
+                f'{badge} {idx}. Username: {part["username"]}  |  '
+                f"{str(self.leaderboard_type).strip().replace('_', ' ').lower().capitalize()}: "
+                f"{part[str(self.leaderboard_type.strip())]:,.2f}"
+            )
             layout.addWidget(person)
 
         total_pages_text = QLabel(f"Page: {self.leaderboard_page}/{total_pages}", self)
@@ -821,7 +872,7 @@ class MainWindow(QMainWindow):
         previous_page.setIconSize(icon_size)
         next_page.setIconSize(icon_size)
 
-        go_back = QPushButton('Go Back ↩️')
+        go_back = QPushButton("Go Back ↩️")
         bottom_layout.addWidget(go_back)
 
         arrow_layout.addWidget(previous_page)
@@ -844,11 +895,11 @@ class MainWindow(QMainWindow):
         else:
             previous_page.setDisabled(False)
 
+        title.setObjectName("title")
+        subtitle.setObjectName("subtitle")
 
-        title.setObjectName('title')
-        subtitle.setObjectName('subtitle')
-
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
                             QMainWindow{
                                 background-color: white;
                             }
@@ -890,40 +941,40 @@ class MainWindow(QMainWindow):
                                 border: 1px solid;
                                 border-radius: 5px;
                             }
-                        """)
+                        """
+        )
 
         previous_page.clicked.connect(previous_page_set)
         next_page.clicked.connect(lambda: next_page_set(total_pages))
         go_back.clicked.connect(self.search)
 
-
     def _init_lesson(self, lesson):
         def _submit_lesson():
             try:
-                self.press_button(int(lesson['id']), int(lesson['points']))
+                self.press_button(int(lesson["id"]), int(lesson["points"]))
 
             except Exception as e:
-                self.press_button(int(lesson['id']))
+                self.press_button(int(lesson["id"]))
                 print(e)
                 self.log_error(e)
 
-        options_text = ''
-        for quiz in lesson['quiz']:  # Loop over the quiz list
-            options_text = quiz['question']
-            self.answer = str(quiz['answer'])
+        options_text = ""
+        for quiz in lesson["quiz"]:  # Loop over the quiz list
+            options_text = quiz["question"]
+            self.answer = str(quiz["answer"])
 
         central = QWidget()
         self.setCentralWidget(central)
 
-        title = QLabel(str(lesson['title']), self)
-        desc = QLabel(str(lesson['description']), self)
+        title = QLabel(str(lesson["title"]), self)
+        desc = QLabel(str(lesson["description"]), self)
 
-        content = QLabel(str(lesson['content']).replace('\\n', '\n'), self)
+        content = QLabel(str(lesson["content"]).replace("\\n", "\n"), self)
         content.setWordWrap(True)
         options = QLabel(str(options_text), self)
         self.user_input = QPlainTextEdit(self)
-        self.submit = QPushButton('Submit', self)
-        go_back = QPushButton('Go Back', self)
+        self.submit = QPushButton("Submit", self)
+        go_back = QPushButton("Go Back", self)
 
         layout = QVBoxLayout()
         layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -938,12 +989,13 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.submit)
         layout.addWidget(go_back)
 
-        central.setObjectName('central_widget')
-        title.setObjectName('title')
-        desc.setObjectName('desc')
-        content.setObjectName('content')
+        central.setObjectName("central_widget")
+        title.setObjectName("title")
+        desc.setObjectName("desc")
+        content.setObjectName("content")
 
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             QMainWindow{
                 background-color: white;
             }
@@ -981,7 +1033,8 @@ class MainWindow(QMainWindow):
                 border: 1px solid;
                 border-radius: 5px;
             }
-        """)
+        """
+        )
 
         central.setLayout(layout)
 
@@ -990,29 +1043,29 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def mark_lesson_finish(lesson_id):
-        file_path = f'{get_appdata_path()}\\lessons.json'
+        file_path = join(get_appdata_path(), "lessons.json")
         try:
-            with open(file_path, 'r', encoding="utf-8") as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json_load(f)
 
         except FileNotFoundError as fe:
             print(fe)
             print()
-            makedirs(str(get_appdata_path() + '\\images'), exist_ok=True)
+            makedirs(join(get_appdata_path(), "images"), exist_ok=True)
             if not os_path_exists(file_path):
-                with open(file_path, 'w', encoding="utf-8") as file:
+                with open(file_path, "w", encoding="utf-8") as file:
                     data = {"lessons": []}
                     dump(data, file)
                 return None
 
         except JSONDecodeError:
-            with open(file_path, 'w', encoding="utf-8") as file:
+            with open(file_path, "w", encoding="utf-8") as file:
                 data = {"lessons": []}
                 dump(data, file)
 
-        for lesson in data['lessons']:
+        for lesson in data["lessons"]:
             try:
-                if int(lesson['id']) == int(lesson_id):
+                if int(lesson["id"]) == int(lesson_id):
                     return lesson
 
             except Exception as e:
@@ -1022,69 +1075,84 @@ class MainWindow(QMainWindow):
     def _init_settings(self):
 
         def set_connect_data():
-            file_path = get_appdata_path() + '\\connect-data.txt'
-            required_texts = (self.server_ip_text, self.server_port_text, self.server_type_text)
+            file_path = join(get_appdata_path(), "connect-data.txt")
+            required_texts = (
+                self.server_ip_text,
+                self.server_port_text,
+                self.server_type_text,
+            )
             for text in required_texts:
-                if text.text() == '':
-                    self.show_message_box('error',
-                                          'Error saving connection data',
-                                          'Unable to connect data as not all parts are filled out.')
+                if text.text() == "":
+                    self.show_message_box(
+                        "error",
+                        "Error saving connection data",
+                        "Unable to connect data as not all parts are filled out.",
+                    )
                     return
 
-            with open(file_path, 'w', encoding='utf-8') as file:
-                data = f'{required_texts[0].text().strip()} {required_texts[1].text().strip()} {required_texts[2].text().strip()}'
+            with open(file_path, "w", encoding="utf-8") as file:
+                data = f"{required_texts[0].text().strip()} {required_texts[1].text().strip()} {required_texts[2].text().strip()}"
                 file.write(data)
 
-            self.show_message_box('info', 'Connection data',
-        'Successfully saved connection data.\n'
-        'Please restart the app for these changes to take effect.')
+            self.show_message_box(
+                "info",
+                "Connection data",
+                "Successfully saved connection data.\n"
+                "Please restart the app for these changes to take effect.",
+            )
 
         def clear_log():
-            file_path = get_appdata_path() + '\\client.log'
-            file_path_2 = get_appdata_path() + '\\client-module.log'
+            file_path = join(get_appdata_path(), "client.log")
+            file_path_2 = file_path = join(get_appdata_path(), "client-module.log")
 
             try:
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write('')
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write("")
 
             except (FileNotFoundError, PermissionError) as e:
                 print(e)
 
             try:
-                with open(file_path_2, 'w', encoding='utf-8') as f:
-                    f.write('')
+                with open(file_path_2, "w", encoding="utf-8") as f:
+                    f.write("")
 
             except (FileNotFoundError, PermissionError) as e:
                 print(e)
 
-            print('Cleared log')
-            self.show_message_box('info', 'Cleared log', 'Log was successfully cleared.')
+            print("Cleared log")
+            self.show_message_box(
+                "info", "Cleared log", "Log was successfully cleared."
+            )
 
         def delete_lessons():
-            file_path = get_appdata_path() + '\\lessons.json'
+            file_path = join(get_appdata_path(), "lessons.json")
 
             try:
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write('')
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write("")
 
-                self.show_message_box('info', 'Lesson deletion',
-            'All lessons were successfully deleted.')
-                self.log_error('All lessons were successfully deleted.')
+                self.show_message_box(
+                    "info", "Lesson deletion", "All lessons were successfully deleted."
+                )
+                self.log_error("All lessons were successfully deleted.")
 
             except (FileNotFoundError, PermissionError) as e:
                 self.log_error(e)
                 print(e)
 
         def reset_leaderboard():
-            file_path = get_appdata_path() + '\\leaderboards.json'
+            file_path = join(get_appdata_path(), "leaderboards.json")
 
             try:
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write('')
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write("")
 
-                self.show_message_box('info', 'Leaderboard deletion',
-            'All leaderboard data has successfully been deleted.')
-                self.log_error('All leaderboard data was successfully deleted.')
+                self.show_message_box(
+                    "info",
+                    "Leaderboard deletion",
+                    "All leaderboard data has successfully been deleted.",
+                )
+                self.log_error("All leaderboard data was successfully deleted.")
 
             except (FileNotFoundError, PermissionError) as e:
                 self.log_error(e)
@@ -1095,50 +1163,57 @@ class MainWindow(QMainWindow):
             reset_leaderboard()
             clear_log()
             self.lessons_completed = 0
-            self.points = 0
+            self.points = 0.0
 
-            file_path = get_appdata_path() + '\\connect-data.txt'
-            file_path_2 = get_appdata_path() + '\\SAVE_DATA'
+            file_path = join(get_appdata_path(), "connect-data.txt")
+            file_path_2 = join(get_appdata_path(), "SAVE_DATA")
 
             try:
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write('')
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write("")
 
             except (FileNotFoundError, PermissionError) as e:
                 self.log_error(e)
                 print(e)
 
             try:
-                with open(file_path_2, 'w', encoding='utf-8') as f:
-                    f.write('')
+                with open(file_path_2, "w", encoding="utf-8") as f:
+                    f.write("")
 
             except (FileNotFoundError, PermissionError) as e:
                 self.log_error(e)
                 print(e)
 
             self._init_settings()
-            self.show_message_box('warning', 'Data deletion',
-        'All data was successfully reset.\n'
-        'Please restart the app for these changes to take effect.')
+            self.show_message_box(
+                "warning",
+                "Data deletion",
+                "All data was successfully reset.\n"
+                "Please restart the app for these changes to take effect.",
+            )
 
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout()
 
-        file_path = get_appdata_path() + '\\connect-data.txt'
+        file_path = join(get_appdata_path(), "connect-data.txt")
 
-        title = QLabel('Settings', self)
+        title = QLabel("Settings", self)
         title.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
-        clear_log_button = QPushButton('Clear Logs ⚠️', self)
-        clear_lessons_button = QPushButton('Delete ALL Lessons 🗑️', self)
-        reset_leaderboard_button = QPushButton('Reset Leaderboard 🔄️🏆', self)
-        clear_all_data = QPushButton('Reset ALL data 🚫', self)
+        clear_log_button = QPushButton("Clear Logs ⚠️", self)
+        clear_lessons_button = QPushButton("Delete ALL Lessons 🗑️", self)
+        reset_leaderboard_button = QPushButton("Reset Leaderboard 🔄️🏆", self)
+        clear_all_data = QPushButton("Reset ALL data 🚫", self)
 
-        points_earned = QLabel(f'Points: {self.points:,.2f}', self)
-        lessons_completed = QLabel(f"Lessons completed: {self.lessons_completed:,}", self)
-        connection_status = QLabel(f"Connection Status: "
-        f"{'Connected 🛜' if connectmod.is_connected() else 'Disconnected ❌'}")
+        points_earned = QLabel(f"Points: {self.points:,.2f}", self)
+        lessons_completed = QLabel(
+            f"Lessons completed: {self.lessons_completed:,}", self
+        )
+        connection_status = QLabel(
+            f"Connection Status: "
+            f"{'Connected 🛜' if connectmod.is_connected() else 'Disconnected ❌'}"
+        )
         print(self.points)
         print(self.lessons_completed)
 
@@ -1147,19 +1222,19 @@ class MainWindow(QMainWindow):
         connection_status.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
         self.server_ip_text = QLineEdit(self)
-        self.server_ip_text.setPlaceholderText('Enter SERVER IP')
+        self.server_ip_text.setPlaceholderText("Enter SERVER IP")
 
         self.server_port_text = QLineEdit(self)
-        self.server_port_text.setPlaceholderText('Enter SERVER PORT')
+        self.server_port_text.setPlaceholderText("Enter SERVER PORT")
 
         self.server_type_text = QLineEdit(self)
-        self.server_type_text.setPlaceholderText('Enter IP TYPE (IPv4/IPv6)')
+        self.server_type_text.setPlaceholderText("Enter IP TYPE (IPv4/IPv6)")
 
-        submit = QPushButton('Submit Data 💾', self)
-        go_back = QPushButton('Go Back ↩️', self)
+        submit = QPushButton("Submit Data 💾", self)
+        go_back = QPushButton("Go Back ↩️", self)
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as file:
+            with open(file_path, "r", encoding="utf-8") as file:
                 file_data = file.read().split()
                 self.server_ip_text.setText(str(file_data[0]))
                 self.server_port_text.setText(str(file_data[1]))
@@ -1184,13 +1259,14 @@ class MainWindow(QMainWindow):
         layout.addWidget(submit)
         layout.addWidget(go_back)
 
-        title.setObjectName('title')
-        clear_log_button.setObjectName('clear_log')
-        points_earned.setObjectName('points_earned')
-        lessons_completed.setObjectName('lessons_completed')
-        connection_status.setObjectName('connection_status')
+        title.setObjectName("title")
+        clear_log_button.setObjectName("clear_log")
+        points_earned.setObjectName("points_earned")
+        lessons_completed.setObjectName("lessons_completed")
+        connection_status.setObjectName("connection_status")
 
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
                             QMainWindow{
                                 background-color: white;
                             }
@@ -1248,7 +1324,8 @@ class MainWindow(QMainWindow):
                                 border-radius: 5px;
                                 font-size: 25px;
                             }
-                        """)
+                        """
+        )
 
         central.setLayout(layout)
         submit.clicked.connect(set_connect_data)
@@ -1259,16 +1336,21 @@ class MainWindow(QMainWindow):
         reset_leaderboard_button.clicked.connect(reset_leaderboard)
 
     def press_button(self, id_l, max_points=0):
-        if str(self.user_input.toPlainText()).replace('"', "'").rstrip() == self.answer.rstrip():
-            self.submit.setStyleSheet('background-color: hsl(115, 100%, 70%)') # light green
+        if (
+            str(self.user_input.toPlainText()).replace('"', "'").rstrip()
+            == self.answer.rstrip()
+        ):
+            self.submit.setStyleSheet(
+                "background-color: hsl(115, 100%, 70%)"
+            )  # light green
             self.lessons_completed += 1
-            self.points += int(int(max_points) / int(self.lesson_attempt))
+            self.points += round((int(max_points) / int(self.lesson_attempt)), 2)
             self.lesson_attempt = 1
             lesson = self.mark_lesson_finish(id_l)
             lesson["completed"] = "True"
 
-            file_path = str(get_appdata_path() + '\\lessons.json')
-            with open(file_path, 'r', encoding='utf-8') as f:
+            file_path = join(get_appdata_path(), "lessons.json")
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json_load(f)
 
             for idx, lsn in enumerate(data["lessons"]):
@@ -1276,19 +1358,19 @@ class MainWindow(QMainWindow):
                     data["lessons"][idx] = lesson
                     break
 
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 dump(data, f)
-
 
             self.save_data()
             self.reload_json()
             self.search()
 
         else:
-            self.submit.setStyleSheet('background-color: hsl(0, 97%, 62%)')
+            self.submit.setStyleSheet("background-color: hsl(0, 97%, 62%)")
             self.lesson_attempt += 1
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     app = QApplication(sys_argv)
     window = MainWindow()
     window.show()
