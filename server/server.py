@@ -625,6 +625,19 @@ def start_server(
     else:
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+    if str(host) == "" or str(host) == "::" or str(host) == "0.0.0.0":
+        host = str(
+            input(
+                ""
+                "[!!] Warning!"
+                "A critical security risk has been found!\n"
+                "Please enter your IP address (not '', 0.0.0.0 or ::): "
+            )
+        )
+        if str(host) == "" or str(host) == "::" or str(host) == "0.0.0.0":
+            print("Unable to start server due to security risks.\nShutting down...")
+            return
+
     server.bind((host, port))
     server.listen()
     print(show_version())
