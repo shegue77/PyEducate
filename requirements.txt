@@ -1,4 +1,4 @@
-pyside6
-requests
-schedule
-types-requests
+pyside6==6.9.1
+requests==2.32.4
+schedule==1.2.2
+types-requests==2.31.0.4

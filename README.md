@@ -62,7 +62,7 @@ Leveraging **socket programming** and **PySide6**, it delivers an engaging, **�
 ## 🚀 Getting Started
 
 ### ✅ Requirements
-- Python 3.6+
+- Python 3.9+
 - 💻 Windows Device
 - 🚫 No internet connection required (runs on the local network)
 
