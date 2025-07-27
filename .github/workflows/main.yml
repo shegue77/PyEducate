@@ -5,6 +5,10 @@ on:
     branches:
       - master
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   lint-and-typecheck:
     runs-on: ubuntu-latest
