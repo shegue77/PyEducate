@@ -129,6 +129,6 @@ For detailed contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 ---
 
 ### 📢 License
-LGPL License – See **[LICENSE](LICENSE)** file for more information.
+GPL License – See **[LICENSE](LICENSE)** file for more information.
 
 ---
