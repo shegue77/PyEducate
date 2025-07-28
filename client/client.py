@@ -3,7 +3,7 @@
 
 # ---------------------------[ DEPENDENCIES ]---------------------------
 from sys import argv as sys_argv, exit as sys_exit
-from json import load as json_load, dump, JSONDecodeError
+from json import load as json_load, dump, JSONDecodeError, loads
 from threading import Thread
 from time import sleep
 from os import getenv, makedirs
@@ -30,6 +30,26 @@ from PySide6.QtGui import Qt
 from PySide6.QtCore import QSize
 
 # ----------------------------------------------------------------------
+
+
+def log_error(data):
+    # Get current time
+    now = datetime.now()
+    timestamp = now.strftime("%d-%m-%Y %H:%M:%S")
+    log_path = str(join(get_appdata_path(), "client.log"))
+
+    data = str(timestamp + " " + str(data) + "\n")
+
+    try:
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(data)
+
+    except FileNotFoundError:
+        with open(log_path, "w", encoding="utf-8") as f:
+            f.write(data)
+
+    except PermissionError:
+        print(f"[!] Insufficient permissions!\nUnable to log data at {log_path}!")
 
 
 def get_appdata_path():
@@ -124,27 +144,6 @@ class MainWindow(QMainWindow):
             f.write(data)
         print("Point data saved successfully")
 
-    @staticmethod
-    def log_error(data):
-
-        # Get current time
-        now = datetime.now()
-        timestamp = now.strftime("%d-%m-%Y %H:%M:%S")
-        log_path = str(join(get_appdata_path(), "client.log"))
-
-        data = str(timestamp + " " + str(data) + "\n")
-
-        try:
-            with open(log_path, "a", encoding="utf-8") as f:
-                f.write(data)
-
-        except FileNotFoundError:
-            with open(log_path, "w", encoding="utf-8") as f:
-                f.write(data)
-
-        except PermissionError:
-            print(f"[!] Insufficient permissions!\nUnable to log data at {log_path}!")
-
     def show_message_box(self, mode, title, text):
 
         if mode == "warning":
@@ -236,7 +235,7 @@ class MainWindow(QMainWindow):
                 print("reloaded lessons.json")
 
         except FileNotFoundError as fe:
-            self.log_error(fe)
+            log_error(fe)
             print(fe)
             print()
             makedirs(join(get_appdata_path(), "images"), exist_ok=True)
@@ -268,7 +267,7 @@ class MainWindow(QMainWindow):
                     print("reloaded")
 
             except FileNotFoundError as fe:
-                self.log_error(fe)
+                log_error(fe)
                 print(fe)
                 print()
                 makedirs(join(get_appdata_path(), "images"), exist_ok=True)
@@ -293,7 +292,7 @@ class MainWindow(QMainWindow):
                     print("reloaded")
 
             except FileNotFoundError as fe:
-                self.log_error(fe)
+                log_error(fe)
                 print(fe)
                 print()
                 makedirs(join(get_appdata_path(), "images"), exist_ok=True)
@@ -314,7 +313,7 @@ class MainWindow(QMainWindow):
                 data = json_load(f)
 
         except FileNotFoundError as fe:
-            self.log_error(fe)
+            log_error(fe)
             print(fe)
             print()
             makedirs(join(get_appdata_path(), "images"), exist_ok=True)
@@ -338,7 +337,7 @@ class MainWindow(QMainWindow):
                 ids.append(lesson["id"])
 
         except IndexError as ie:
-            self.log_error(ie)
+            log_error(ie)
             return [None]
 
         return ids
@@ -356,7 +355,7 @@ class MainWindow(QMainWindow):
                 data = json_load(f)
 
         except FileNotFoundError as fe:
-            self.log_error(fe)
+            log_error(fe)
             print(fe)
             print()
             create_json()
@@ -438,14 +437,14 @@ class MainWindow(QMainWindow):
                 self.lessons_completed = int(save_data[1])
 
         except FileNotFoundError as fe:
-            self.log_error(fe)
+            log_error(fe)
             with open(save_data_path, "w", encoding="utf-8") as f:
                 f.write("0 0")
 
         except IndexError as ie:
             self.points = 0.0
             self.lessons_completed = 0
-            self.log_error(ie)
+            log_error(ie)
 
         def reload_ui():
             self.search()
@@ -550,7 +549,7 @@ class MainWindow(QMainWindow):
                     )
 
                 except TypeError as te:
-                    self.log_error(te)
+                    log_error(te)
                     print(te)
                     return None
 
@@ -730,7 +729,12 @@ class MainWindow(QMainWindow):
                 return []
 
             with open(filename, "r", encoding="utf-8") as f:
-                return json_load(f)
+                try:
+                    json_data = json_load(f)
+                    return json_data
+                except Exception as e:
+                    log_error(e)
+                    return []
 
         def get_top_n_users(filename, type_n="points", n=10):
             leaderboard = read_leaderboard(filename)
@@ -795,7 +799,7 @@ class MainWindow(QMainWindow):
             try:
                 self.leaderboard_type = str(board_types[self.leaderboard_page - 1])
             except IndexError as ie:
-                self.log_error(ie)
+                log_error(ie)
                 print(ie)
                 self.show_message_box(
                     "error",
@@ -955,8 +959,7 @@ class MainWindow(QMainWindow):
 
             except Exception as e:
                 self.press_button(int(lesson["id"]))
-                print(e)
-                self.log_error(e)
+                log_error(e)
 
         options_text = ""
         for quiz in lesson["quiz"]:  # Loop over the quiz list
@@ -971,7 +974,7 @@ class MainWindow(QMainWindow):
 
         content = QLabel(str(lesson["content"]).replace("\\n", "\n"), self)
         content.setWordWrap(True)
-        options = QLabel(str(options_text), self)
+        options = QLabel("Lesson Task: " + str(options_text), self)
         self.user_input = QPlainTextEdit(self)
         self.submit = QPushButton("Submit", self)
         go_back = QPushButton("Go Back", self)
@@ -1134,10 +1137,10 @@ class MainWindow(QMainWindow):
                 self.show_message_box(
                     "info", "Lesson deletion", "All lessons were successfully deleted."
                 )
-                self.log_error("All lessons were successfully deleted.")
+                log_error("All lessons were successfully deleted.")
 
             except (FileNotFoundError, PermissionError) as e:
-                self.log_error(e)
+                log_error(e)
                 print(e)
 
         def reset_leaderboard():
@@ -1152,10 +1155,10 @@ class MainWindow(QMainWindow):
                     "Leaderboard deletion",
                     "All leaderboard data has successfully been deleted.",
                 )
-                self.log_error("All leaderboard data was successfully deleted.")
+                log_error("All leaderboard data was successfully deleted.")
 
             except (FileNotFoundError, PermissionError) as e:
-                self.log_error(e)
+                log_error(e)
                 print(e)
 
         def delete_all_data():
@@ -1173,7 +1176,7 @@ class MainWindow(QMainWindow):
                     f.write("")
 
             except (FileNotFoundError, PermissionError) as e:
-                self.log_error(e)
+                log_error(e)
                 print(e)
 
             try:
@@ -1181,7 +1184,7 @@ class MainWindow(QMainWindow):
                     f.write("")
 
             except (FileNotFoundError, PermissionError) as e:
-                self.log_error(e)
+                log_error(e)
                 print(e)
 
             self._init_settings()
@@ -1241,7 +1244,7 @@ class MainWindow(QMainWindow):
                 self.server_type_text.setText(str(file_data[2]))
 
         except (FileNotFoundError, PermissionError, IndexError) as e:
-            self.log_error(e)
+            log_error(e)
 
         layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addSpacing(1)
