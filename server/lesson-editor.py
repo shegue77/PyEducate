@@ -600,9 +600,7 @@ class Editor(QMainWindow):
         self.title_name.setPlaceholderText("Enter Title (Required)")
 
         self.image_path = QLineEdit(self)
-        self.image_path.setPlaceholderText(
-            "Enter Image Path (Optional, work in progress)"
-        )
+        self.image_path.setPlaceholderText("Enter Image Path (Work in progress)")
         self.image_path.setDisabled(True)
 
         self.point_amount = QLineEdit(self)
@@ -611,11 +609,13 @@ class Editor(QMainWindow):
         )
 
         self.description_text = QLineEdit(self)
-        self.description_text.setPlaceholderText("Quick Description (Required)")
+        self.description_text.setPlaceholderText(
+            "Subtitle/Quick Description (Required)"
+        )
 
         self.content_text = QPlainTextEdit(self)
         self.content_text.setPlaceholderText(
-            "Full description and answers (Required, Can be Multi-line)"
+            "Full description (Required, Can be Multi-line)"
         )
 
         self.quiz_question_text = QLineEdit(self)
@@ -624,7 +624,9 @@ class Editor(QMainWindow):
         )
 
         self.quiz_answer_text = QPlainTextEdit(self)
-        self.quiz_answer_text.setPlaceholderText("Quiz Answer (Required)")
+        self.quiz_answer_text.setPlaceholderText(
+            "Quiz Answer (Required, ensure valid syntax)"
+        )
 
         submit_data = QPushButton("Submit", self)
         go_back_del = QPushButton("Main Menu")
