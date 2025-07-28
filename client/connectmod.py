@@ -1,6 +1,6 @@
 # Copyright (C) 2025 shegue77
 # SPDX-License-Identifier: GPL-3.0-or-later
-__version__ = "1.0.0-rc0"
+__version__ = "1.0.0"
 
 # ---------------------------[ DEPENDENCIES ]---------------------------
 import socket
@@ -226,7 +226,7 @@ def start_client(server_ip, server_port, server_type="ipv4"):
             try:
                 with open(stat_path, "r", encoding="utf-8") as f:
                     data = f.read().strip().split()
-                    points = int(data[0])
+                    points = float(data[0])
                     lessons_completed = int(data[1])
 
             except (
@@ -247,6 +247,7 @@ def start_client(server_ip, server_port, server_type="ipv4"):
                 client.sendall(username_data.encode())
 
             except Exception as e:
+                print(e)
                 log_error(e)
 
             continue
