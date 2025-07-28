@@ -16,14 +16,16 @@ from schedule import every, run_pending
 
 
 # -------------------------[ GLOBAL VARIABLES ]-------------------------
+app_version = "v1.0.0"
 clients: dict = {}  # Keeps track of clients
 usernames: dict = {}  # Keeps track of usernames of clients
 active_threads: list = []  # Keeps track of (most) active threads.
 END_MARKER = (
-    b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"  # End marker used when sending JSON files,
+    b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"
+    # End marker used when sending JSON files.
+    # MAKE SURE this does NOT appear at all in your JSON file.
+    # MAKE SURE that this end marker MATCHES the end marker on the client.
 )
-# MAKE SURE this does NOT appear at all in your JSON file.
-# MAKE SURE that this end marker MATCHES the end marker on the client.
 safe_leaderboard = Lock()
 safe_banned_users = Lock()
 # ----------------------------------------------------------------------
@@ -142,19 +144,22 @@ def unban_user(ip_address):
             with open(file_path, "r", encoding="utf-8") as f:
                 data = load(f)
 
-    except FileNotFoundError:
-        print("Ban list not found.")
+    except FileNotFoundError as fe:
+        print("[*] Ban list not found.")
         with safe_banned_users:
             with open(file_path, "w", encoding="utf-8") as f:
                 json_data = {"banned_ips": {}}
                 dump(json_data, f)
+
+        log_error(fe)
         return
 
-    except JSONDecodeError:
+    except JSONDecodeError as je:
         with safe_banned_users:
             with open(file_path, "w", encoding="utf-8") as f:
                 json_data = {"banned_ips": {}}
                 dump(json_data, f)
+        log_error(je)
         return
 
     if ip_address in data["banned_ips"]:
@@ -164,9 +169,9 @@ def unban_user(ip_address):
             with open(file_path, "w", encoding="utf-8") as f:
                 dump(data, f, indent=2)
 
-        print(f"Unbanned {ip_address}")
+        print(f"[*] Unbanned {ip_address}")
     else:
-        print(f"IP address {ip_address} not found in ban list.")
+        print(f"[!] IP address {ip_address} not found in ban list.")
 
 
 def check_if_banned(ip_address):
@@ -178,7 +183,7 @@ def check_if_banned(ip_address):
                 json_data = load(f)
 
     except FileNotFoundError:
-        print("Ban list not found.")
+        print("[*] Ban list not found.")
         with safe_banned_users:
             with open(file_path, "w", encoding="utf-8") as f:
                 json_data = {"banned_ips": {}}
@@ -225,7 +230,13 @@ def send_json(client, file_path, id_n=None):
         file = open(file_path, "r", encoding="utf-8")
     except FileNotFoundError:
         file_path = str(join(get_appdata_path(), "lessons.json"))
-        file = open(file_path, "r", encoding="utf-8")
+        try:
+            file = open(file_path, "r", encoding="utf-8")
+        except FileNotFoundError as fe:
+            log_error(fe)
+            print("\n[!] No lesson file found!")
+            client.sendall(END_MARKER)
+            return
 
     full_data = file.read()
 
@@ -233,7 +244,6 @@ def send_json(client, file_path, id_n=None):
         loads(full_data)
     except Exception as e:
         print("[!] INVALID JSON! Sending failed!")
-        print(e)
         log_error(e)
         return
 
@@ -255,7 +265,7 @@ def send_json(client, file_path, id_n=None):
                     break
 
             if not id_found:
-                print(f"ID {id_s} not found in {file_path}!")
+                print(f"[!] ID {id_s} not found in {file_path}!")
 
         sending_data = dumps(sending_data)
 
@@ -287,7 +297,6 @@ def send_leaderboard(client, filename):
         loads(full_data)
     except Exception as e:
         print("[!] INVALID JSON! Sending failed!")
-        print(e)
         log_error(e)
         return
 
@@ -369,7 +378,6 @@ def clean_leaderboard(file_path):
             if not found:
                 file_data.append(person)
 
-    print(dumps(file_data))
     return dumps(file_data)
 
 
@@ -378,9 +386,15 @@ def update_leaderboard(username, point_amount, lesson_completed):
 
     # Save the leaderboard to the JSON file
     def write_leaderboard(filename, leaderboard):
+
         with safe_leaderboard:
-            with open(filename, "w", encoding="utf-8") as f:
-                dump(leaderboard, f, indent=4)
+            try:
+                with open(filename, "w", encoding="utf-8") as f:
+                    dump(leaderboard, f, indent=4)
+
+            except Exception as e:
+                log_error(e)
+                return
 
     # Add or update a user in the leaderboard
     def add_or_update_user(filename, user, points, lessons_completed):
@@ -440,7 +454,7 @@ def handle_client(client_socket, addr):
                 usernames[addr] = username
 
             elif str(response).startswith("!getstats"):
-                points = int(response.split(" ")[1])
+                points = float(response.split(" ")[1])
                 lessons_completed = int(response.split(" ")[2])
                 username = usernames.get(addr, "Unknown")
 
@@ -484,7 +498,7 @@ def disconnect(clients_list, server_m):
             print("[!!] Proceeding with potentially " "unsafe server shutdown...\n")
 
         else:
-            print("Server shutdown safely aborted.\n")
+            print("[*] Server shutdown safely aborted.\n")
             return
 
     else:
@@ -530,15 +544,15 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
+You should have received a copy of the GNU General Public License v3
 along with this program.  If not, see <https://www.gnu.org/licenses/>
 """
     return data
 
 
 def show_version():
-    data = """
-PyEducate Server v1.0.0-rc0 | Copyright (C) 2025 shegue77
+    data = f"""
+PyEducate Server {app_version} | Copyright (C) 2025 shegue77
 This program comes with ABSOLUTELY NO WARRANTY.
 This software is released under the GNU GPL; run !license for details.
 """
@@ -635,7 +649,10 @@ def start_server(
             )
         )
         if str(host) == "" or str(host) == "::" or str(host) == "0.0.0.0":
-            print("Unable to start server due to security risks.\nShutting down...")
+            print(
+                "[!!] Unable to start server due to security risks.\nShutting down..."
+            )
+            log_error("[!!] Unable to start server due to security risks.")
             return
 
     server.bind((host, port))
@@ -693,10 +710,12 @@ def process_commands(server, server_data):
                 print(help_data())
             elif str(choice).strip().lower().startswith("!info"):
                 print(
+                    "\n"
                     f"SERVER IP: {server_data[0]}\n"
                     f"SERVER PORT: {server_data[1]}\n"
                     f"IP TYPE: {server_data[2]}\n"
                     f"End marker: {str(server_data[3])}\n"
+                    f"Log file: {str(join(get_appdata_path(), "server.log"))}"
                 )
             elif str(choice).strip().lower().startswith("!ban"):
                 ban_user(str(choice).strip().lower())
@@ -953,11 +972,11 @@ def process_commands(server, server_data):
 if __name__ == "__main__":
     full_path = get_appdata_path()
     ANSWER = str(input("Would you like to change any settings (y/n): ")).strip().lower()
+    SERVER_IP: str = ""
     if ANSWER in ("y", "yes"):
         SERVER_PORT = int(input("Enter server port: "))
         IP_TYPE = str(input("Enter IP type (IPv4/IPv6): ")).lower()
 
-        SERVER_IP: str = ""
         if IP_TYPE.strip() == "ipv6":
 
             hostname = socket.gethostname()
@@ -978,9 +997,8 @@ if __name__ == "__main__":
         with open(join(full_path, "connect-data.txt"), "w", encoding="utf-8") as f:
             f.write(f"{SERVER_PORT}\n{IP_TYPE}")
 
-        print(SERVER_IP)
-
     try:
+
         with open(join(full_path, "connect-data.txt"), "r", encoding="utf-8") as f:
             SERVER_PORT = int(f.readline().strip().replace(" ", ""))
             try:
