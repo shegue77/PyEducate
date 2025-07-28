@@ -715,7 +715,7 @@ def process_commands(server, server_data):
                     f"SERVER PORT: {server_data[1]}\n"
                     f"IP TYPE: {server_data[2]}\n"
                     f"End marker: {str(server_data[3])}\n"
-                    f"Log file: {str(join(get_appdata_path(), "server.log"))}"
+                    f"Log file: {str(join(get_appdata_path(), 'server.log'))}"
                 )
             elif str(choice).strip().lower().startswith("!ban"):
                 ban_user(str(choice).strip().lower())
