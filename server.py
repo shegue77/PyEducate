@@ -5,12 +5,14 @@
 import socket
 from threading import Thread, Lock
 from json import load, loads, dump, dumps, JSONDecodeError
-from os import getenv, makedirs
-from datetime import datetime
-from os.path import exists as os_path_exists, expanduser, join
-from platform import system
+from os.path import exists as os_path_exists, join
 from sys import exit as sys_exit
 from schedule import every, run_pending
+
+from ServerUtils.paths import get_appdata_path
+from ServerUtils.logger import log_error
+from ServerUtils.admin import ban_user, unban_user, check_if_banned, list_banned
+from ServerUtils.help import show_version, show_license, help_data
 
 # ----------------------------------------------------------------------
 
@@ -27,200 +29,7 @@ END_MARKER = (
     # MAKE SURE that this end marker MATCHES the end marker on the client.
 )
 safe_leaderboard = Lock()
-safe_banned_users = Lock()
 # ----------------------------------------------------------------------
-
-
-# Gets the full path to APPDATA.
-def get_appdata_path():
-    user_os = system()
-    if user_os == "Windows":
-        path_to_appdata = getenv("APPDATA")
-    elif user_os == "Darwin":
-        path_to_appdata = expanduser("~/Library/Application Support")
-    else:
-        path_to_appdata = getenv("XDG_DATA_HOME", expanduser("~/.local/share"))
-
-    if os_path_exists(join(path_to_appdata, "PyEducate")):
-        if os_path_exists((join(path_to_appdata, "PyEducate", "server"))):
-            full_path_data = join(path_to_appdata, "PyEducate", "server")
-        else:
-            full_path_data = join(path_to_appdata, "PyEducate", "server")
-            makedirs(full_path_data)
-    else:
-        makedirs(join(path_to_appdata, "PyEducate"))
-        makedirs(join(path_to_appdata, "PyEducate", "server"))
-        full_path_data = join(path_to_appdata, "PyEducate", "server")
-
-    return full_path_data
-
-
-def log_error(data):
-
-    # Get current time
-    now = datetime.now()
-    timestamp = now.strftime("%d-%m-%Y %H:%M:%S")
-    log_path = str(join(get_appdata_path(), "server.log"))
-
-    data = str(timestamp + " " + str(data) + "\n")
-
-    try:
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(data)
-
-    except FileNotFoundError:
-        with open(log_path, "w", encoding="utf-8") as f:
-            f.write(data)
-
-    except PermissionError:
-        print(f"[!] Insufficient permissions!\n" f"Unable to log data at {log_path}!")
-
-
-def ban_user(command):
-    try:
-        ip_address = command.split(" ")[1]
-    except IndexError:
-        print("[!] IP address not specified!\nUnable to ban user!")
-        return None
-    try:
-        reason = command.split(" ")[2]
-    except Exception:
-        reason = "Unknown"
-    try:
-        severity = command.split(" ")[3]
-    except Exception:
-        severity = "Unknown"
-    try:
-        end_date = command.split(" ")[4]
-    except Exception:
-        end_date = "Indefinite"
-
-    file_path = str(join(get_appdata_path(), "banned-users.json"))
-    try:
-        with safe_banned_users:
-            with open(file_path, "r", encoding="utf-8") as f:
-                json_data = load(f)
-    except FileNotFoundError:
-        json_data = {"banned_ips": {}}
-    except JSONDecodeError:
-        json_data = {"banned_ips": {}}
-
-    if reason.strip() == "":
-        reason = "Unknown"
-    if end_date.strip() == "":
-        end_date = "Indefinite"
-    if severity.strip() == "":
-        severity = "Unknown"
-
-    now = datetime.now()
-    timestamp = now.strftime("%d-%m-%Y%H:%M:%S")
-    new_ban = loads(
-        '{"timestamp": '
-        + f'"{timestamp}", '
-        + f'"reason": "{reason}", '
-        + f'"severity": "{severity}", '
-        + f'"end_date": "{end_date}"'
-        + "}"
-    )
-
-    json_data["banned_ips"][ip_address] = new_ban
-
-    with safe_banned_users:
-        with open(file_path, "w", encoding="utf-8") as f:
-            dump(json_data, f, indent=2)
-
-    print(
-        f"{ip_address} has been banned!\n"
-        f"Run !disconnect to cut all"
-        f" connections with {ip_address}."
-    )
-
-
-def unban_user(ip_address):
-    file_path = str(join(get_appdata_path(), "banned-users.json"))
-
-    try:
-        with safe_banned_users:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = load(f)
-
-    except FileNotFoundError as fe:
-        print("[*] Ban list not found.")
-        with safe_banned_users:
-            with open(file_path, "w", encoding="utf-8") as f:
-                json_data = {"banned_ips": {}}
-                dump(json_data, f)
-
-        log_error(fe)
-        return
-
-    except JSONDecodeError as je:
-        with safe_banned_users:
-            with open(file_path, "w", encoding="utf-8") as f:
-                json_data = {"banned_ips": {}}
-                dump(json_data, f)
-        log_error(je)
-        return
-
-    if ip_address in data["banned_ips"]:
-        del data["banned_ips"][ip_address]
-
-        with safe_banned_users:
-            with open(file_path, "w", encoding="utf-8") as f:
-                dump(data, f, indent=2)
-
-        print(f"[*] Unbanned {ip_address}")
-    else:
-        print(f"[!] IP address {ip_address} not found in ban list.")
-
-
-def check_if_banned(ip_address):
-    file_path = str(join(get_appdata_path(), "banned-users.json"))
-
-    try:
-        with safe_banned_users:
-            with open(file_path, "r", encoding="utf-8") as f:
-                json_data = load(f)
-
-    except FileNotFoundError:
-        print("[*] Ban list not found.")
-        with safe_banned_users:
-            with open(file_path, "w", encoding="utf-8") as f:
-                json_data = {"banned_ips": {}}
-                dump(json_data, f)
-        return False
-
-    except JSONDecodeError:
-        with safe_banned_users:
-            with open(file_path, "w", encoding="utf-8") as f:
-                json_data = {"banned_ips": {}}
-                dump(json_data, f)
-        return False
-
-    return bool(ip_address in json_data["banned_ips"].keys())
-
-
-def list_banned():
-    file_path = str(join(get_appdata_path(), "banned-users.json"))
-    banned_ip_data = "\nBanned IP addresses:\n\n"
-
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            json_data = load(f)
-    except FileNotFoundError:
-        json_data = {"banned_ips": {}}
-    except JSONDecodeError:
-        json_data = {"banned_ips": {}}
-
-    for part in json_data["banned_ips"]:
-        banned_ip_data += f"IP: " f"{part}:\n"
-        banned_ip_data += f"Reason: " f'{json_data["banned_ips"][part]["reason"]}\n'
-        banned_ip_data += f"Severity: " f'{json_data["banned_ips"][part]["severity"]}\n'
-        banned_ip_data += (
-            f"Timestamp: " f'{json_data["banned_ips"][part]["timestamp"]}\n\n'
-        )
-
-    return banned_ip_data
 
 
 # Parses and sends the JSON file to the client.
@@ -529,106 +338,6 @@ def disconnect(clients_list, server_m):
     sys_exit(0)
 
 
-def show_license():
-    data = """
-PyEducate Server - Server application used to send data such as lessons to clients.
-Copyright (C) 2025 shegue77
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License v3
-along with this program.  If not, see <https://www.gnu.org/licenses/>
-"""
-    return data
-
-
-def show_version():
-    data = f"""
-PyEducate Server {app_version} | Copyright (C) 2025 shegue77
-This program comes with ABSOLUTELY NO WARRANTY.
-This software is released under the GNU GPL; run !license for details.
-"""
-    return data
-
-
-# Displays help data for commands.
-def help_data():
-    data = """
-
-Available Commands:
-
-    !help
-        Opens the help list.
-
-    !info
-        Shows information of the server.
-
-    !version
-        Shows the version of the application.
-
-    !license
-        Shows the license of the application.
-
-    !getip
-        Gets the public IPv4 address of client(s).
-
-    !gethostname
-        Gets the hostname of client(s).
-
-    !getusername
-        Gets the username of client(s).
-
-    !getstats
-        Gets leaderboard data of client(s), used to update their leaderboard.
-
-    !updateboard [path]
-        Parses and sends leaderboard data of the top 10 which is in a leaderboard JSON to client(s).
-        Example: !updateboard leaderboards.json
-
-    !sendlesson <lesson_ID> [path]
-        Sends specific lesson(s) from a JSON file containing lessons (identified by ID) to client(s).
-        Example 1: !sendlesson [2] lessons.json
-        Example 2: !sendlesson [1, 3, 4] lessons.json
-
-    !sendjson [path]
-        Sends a JSON file containing ALL lessons to client(s).
-        Example: !sendjson lessons.json
-
-    !showblacklist
-        Displays the list of all banned IP addresses.
-
-    !ban <IP_ADDRESS> [reason] [severity]
-        Bans (prevents) an IP address from connecting to the server.
-        Example: !ban 127.0.0.1 port_scanning high
-
-    !unban <IP_ADDRESS>
-        Removes the ban from the specified IP address.
-        Example: !unban 127.0.0.1
-
-    !disconnect
-        Cuts a connection with client(s).
-
-    !shutdown
-        Safely disconnects all clients before shutting down the server.
-        Use with caution.
-
-Notes:
-- Arguments in <> are required.
-- Arguments in [] are optional.
-- To refresh client list & command prompt, press the 'enter' key.
-
-    """
-    return data
-
-
 # Starts the server and listens for clients.
 def start_server(
     host, port, server_type="ipv4", marker_end=b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"
@@ -657,7 +366,7 @@ def start_server(
 
     server.bind((host, port))
     server.listen()
-    print(show_version())
+    print(show_version(app_version))
     print("Press the 'enter' key to refresh client list " "& the command prompt.\n")
     print(
         "For more help about the commands of this application, "
@@ -728,7 +437,7 @@ def process_commands(server, server_data):
                 unban_user(ip_address)
 
             elif str(choice).strip().lower().startswith("!version"):
-                print(show_version())
+                print(show_version(app_version))
             elif str(choice).strip().lower().startswith("!license"):
                 print(show_license())
             elif str(choice).strip().lower().startswith("!showblacklist"):
@@ -830,7 +539,7 @@ def process_commands(server, server_data):
                 print(list_banned())
 
             elif command.startswith("!version"):
-                print(show_version())
+                print(show_version(app_version))
             elif command.startswith("!license"):
                 print(show_license())
 
@@ -1121,7 +830,7 @@ Emergency Commands:
                     continue
                 unban_user(ip_address)
             elif COMMAND.startswith("!version"):
-                print(show_version())
+                print(show_version(app_version))
             elif COMMAND.startswith("!license"):
                 print(show_license())
             elif COMMAND.startswith("!showblacklist"):

@@ -1,17 +1,16 @@
 # Copyright (C) 2025 shegue77
 # SPDX-License-Identifier: GPL-3.0-or-later
-__version__ = "1.0.0"
 
 # ---------------------------[ DEPENDENCIES ]---------------------------
 import socket
 from getpass import getuser
 from threading import Event
-from os import getenv, makedirs
-from os.path import exists as os_path_exists, expanduser, join
-from json import load, loads, dump, JSONDecodeError
-from datetime import datetime
-from platform import system
+from os.path import join
 from requests import get
+
+from .paths import get_appdata_path
+from .logger import log_error
+from .storage import download_file
 
 # ----------------------------------------------------------------------
 
@@ -22,144 +21,6 @@ END_MARKER = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"  # End marker used when recei
 id_amount = 1
 connected_to_server = Event()
 # ----------------------------------------------------------------------
-
-
-# Function gets the full path to APPDATA.
-def get_appdata_path():
-    user_os = system()
-    if user_os == "Windows":
-        path_to_appdata = getenv("APPDATA")
-    elif user_os == "Darwin":
-        path_to_appdata = expanduser("~/Library/Application Support")
-    else:
-        path_to_appdata = getenv("XDG_DATA_HOME", expanduser("~/.local/share"))
-
-    if os_path_exists(join(path_to_appdata, "PyEducate")):
-        if os_path_exists((join(path_to_appdata, "PyEducate", "client"))):
-            full_path_data = join(path_to_appdata, "PyEducate", "client")
-        else:
-            full_path_data = join(path_to_appdata, "PyEducate", "client")
-            makedirs(full_path_data)
-    else:
-        makedirs(join(path_to_appdata, "PyEducate"))
-        makedirs(join(path_to_appdata, "PyEducate", "client"))
-        full_path_data = join(path_to_appdata, "PyEducate", "client")
-
-    return full_path_data
-
-
-def log_error(data):
-
-    # Get current time
-    now = datetime.now()
-    timestamp = now.strftime("%d-%m-%Y %H:%M:%S")
-    log_path = str(join(get_appdata_path(), "client-module.log"))
-
-    data = str(timestamp + " " + str(data) + "\n")
-
-    try:
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(data)
-
-    except FileNotFoundError:
-        with open(log_path, "w", encoding="utf-8") as f:
-            f.write(data)
-
-    except PermissionError:
-        print(f"[!] Insufficient permissions!\n" f"Unable to log data at {log_path}!")
-
-
-# After download, the downloaded lesson gets sent here to be added to the JSON file containing locally-stored lessons.
-def get_json_file(new_lessons):
-    file_path = join(get_appdata_path(), "lessons.json")
-
-    try:
-        with open(file_path, "r", encoding="utf-8") as file:
-            data = load(file)
-
-    except FileNotFoundError:
-        data = {"lessons": []}
-
-    lessons = data["lessons"]
-
-    if isinstance(new_lessons, str):
-        try:
-            new_lessons = loads(new_lessons)
-        except JSONDecodeError as e:
-            log_error(e)
-            print("❌ Invalid JSON string:", e)
-            return None
-
-    if not isinstance(new_lessons, list):
-        print("❌ Input must be a list of lessons.")
-        return None
-
-    for lesson in new_lessons:
-        lesson["id"] = len(lessons) + 1
-        lessons.append(lesson)
-
-    with open(file_path, "w", encoding="utf-8") as f:
-        dump({"lessons": lessons}, f, indent=4)
-
-    print(f"✅ Added {len(new_lessons)} lessons.")
-    return "SUCCESS"
-
-
-# Downloads the lesson from the server (host).
-def download_file(client_r, mode):
-
-    print("Listening for data...")
-
-    if mode == "json":
-        file_path = join(get_appdata_path(), "temp-lessons.json")
-    else:
-        file_path = join(get_appdata_path(), "temp-leaderboards.json")
-
-    file = open(file_path, "wb")
-    file_bytes = b""
-    done = False
-
-    while not done:
-        if file_bytes[-34:] == bytes(END_MARKER):
-            done = True
-            file_bytes = file_bytes[:-34]
-            break
-
-        print("Receiving data")
-        print(file_bytes)
-        data = client_r.recv(1024)
-
-        if file_bytes[-34:] == bytes(END_MARKER):
-            done = True
-            file_bytes = file_bytes[:-34]
-
-        else:
-            file_bytes += data
-
-        print("Updated")
-
-    file.write(file_bytes)
-    file.close()
-
-    lesson = open(file_path, "r", encoding="utf-8").read()
-    print(lesson)
-    print(mode)
-
-    if mode == "json":
-        get_json_file(lesson)
-
-    else:
-        try:
-            lesson = loads(lesson)
-        except JSONDecodeError as e:
-            log_error(e)
-            print("❌ Invalid JSON string:", e)
-            return None
-
-        with open(
-            str(join(get_appdata_path(), "leaderboards.json")), "w", encoding="utf-8"
-        ) as f:
-            dump(lesson, f)
 
 
 # Connects to the server (host).
@@ -183,10 +44,10 @@ def start_client(server_ip, server_port, server_type="ipv4"):
 
         if command == "!sendjson":
             print("a")
-            download_file(client, "json")
+            download_file(client, "json", END_MARKER)
 
         elif command == "!updateboard":
-            download_file(client, "board")
+            download_file(client, "board", END_MARKER)
 
         elif command == "!getip":
             try:
