@@ -3,7 +3,7 @@
 
 # ---------------------------[ DEPENDENCIES ]---------------------------
 import socket
-from threading import Thread, Lock
+from threading import Thread
 from os.path import join
 from sys import exit as sys_exit
 from schedule import every, run_pending
@@ -28,7 +28,6 @@ END_MARKER = (
     # MAKE SURE this does NOT appear at all in your JSON file.
     # MAKE SURE that this end marker MATCHES the end marker on the client.
 )
-safe_leaderboard = Lock()
 # ----------------------------------------------------------------------
 
 
@@ -282,7 +281,8 @@ def process_commands(server, server_data):
                     client.sendall(str("!updateboard").encode())
 
                     thread = Thread(
-                        target=send_leaderboard, args=(client, file_path_json)
+                        target=send_leaderboard,
+                        args=(client, file_path_json, END_MARKER),
                     )
 
                     thread.start()
@@ -324,10 +324,13 @@ def process_commands(server, server_data):
                     client.sendall(str("!sendjson").encode())
 
                     if command.startswith("!sendjson"):
-                        thread = Thread(target=send_json, args=(client, file_path_json))
+                        thread = Thread(
+                            target=send_json, args=(client, file_path_json, END_MARKER)
+                        )
                     else:
                         thread = Thread(
-                            target=send_json, args=(client, file_path_json, lesson_id)
+                            target=send_json,
+                            args=(client, file_path_json, END_MARKER, lesson_id),
                         )
 
                     thread.start()
@@ -399,12 +402,18 @@ def process_commands(server, server_data):
 
                 if command.startswith("!sendjson"):
                     thread = Thread(
-                        target=send_json, args=(clients[target_addr], file_path_json)
+                        target=send_json,
+                        args=(clients[target_addr], file_path_json, END_MARKER),
                     )
                 else:
                     thread = Thread(
                         target=send_json,
-                        args=(clients[target_addr], file_path_json, lesson_id),
+                        args=(
+                            clients[target_addr],
+                            file_path_json,
+                            lesson_id,
+                            END_MARKER,
+                        ),
                     )
 
                 thread.start()
@@ -424,7 +433,8 @@ def process_commands(server, server_data):
                 clients[target_addr].sendall(str("!updateboard").encode())
 
                 thread = Thread(
-                    target=send_leaderboard, args=(clients[target_addr], file_path_json)
+                    target=send_leaderboard,
+                    args=(clients[target_addr], file_path_json, END_MARKER),
                 )
 
                 thread.start()

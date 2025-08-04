@@ -1,5 +1,15 @@
+from json import JSONDecodeError, loads, dumps, load, dump
+from os.path import join, exists as os_path_exists
+from threading import Lock
+
+from .paths import get_appdata_path
+from .logger import log_error
+
+safe_leaderboard = Lock()
+
+
 # Parses and sends the JSON file to the client.
-def send_json(client, file_path, id_n=None):
+def send_json(client, file_path, END_MARKER, id_n=None):
 
     try:
         file = open(file_path, "r", encoding="utf-8")
@@ -57,7 +67,7 @@ def send_json(client, file_path, id_n=None):
     file.close()
 
 
-def send_leaderboard(client, filename):
+def send_leaderboard(client, filename, END_MARKER):
 
     try:
         file = open(filename, "r", encoding="utf-8")
