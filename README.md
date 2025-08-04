@@ -51,6 +51,9 @@ Leveraging **socket programming** and **PySide6**, it delivers an engaging, **ðŸ
 
 ---
 
+## â” Why use PyEducate?
+#### Check out the [wiki](https://github.com/shegue77/PyEducate/wiki) to learn more about PyEducate.
+
 ## â“How it works
 - **Host** uses the **lesson editor** to create lessons, saved in JSON format; sorted by ID.
 - **Host** uses the **server program** which contains a suite of commands used to send & receive data.
@@ -79,14 +82,14 @@ Leveraging **socket programming** and **PySide6**, it delivers an engaging, **ðŸ
 ###### 2. Install dependencies:
     pip install -r requirements.txt
 
-###### 3. Run the server:
-    python ./server/server.py
+###### 3. Run the lesson editor:
+    python lesson-editor.py
 
-###### 4. Run the lesson editor:
-    python ./server/lesson-editor.py
+###### 4. Run the server:
+    python server.py
 
 ###### 5. Run the client:
-    python ./client/client.py
+    python client.py
 
 ---
 
@@ -125,6 +128,8 @@ For detailed contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 > ![Server](assets/server.png)
 
 > ![Lesson Editor](assets/lesson-editor.png)
+
+### Full Demo [Here](https://youtu.be/-hf7UFrB3TM?si=KDYq3QeLKzNqcTJG)
 
 ---
 

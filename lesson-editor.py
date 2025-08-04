@@ -4,10 +4,8 @@
 # ------------------------------------------------------[ DEPENDENCIES ]-----------------------------------------------------
 from sys import argv as sys_argv, exit as sys_exit
 from json import load, loads, dump, dumps, JSONDecodeError
-from os import getenv, makedirs
 from datetime import datetime
-from platform import system
-from os.path import exists as os_path_exists, expanduser, join
+from os.path import join
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -19,32 +17,28 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
 )
 from PySide6.QtGui import Qt
+from ServerUtils.paths import get_appdata_path
 
 # ----------------------------------------------------------------------------------------------------------------------------
 
+def log_error(data):
+    # Get current time
+    now = datetime.now()
+    timestamp = now.strftime("%d-%m-%Y %H:%M:%S")
+    log_path = join(get_appdata_path(), "lesson-editor.log")
 
-def get_appdata_path():
-    user_os = system()
-    if user_os == "Windows":
-        path_to_appdata = getenv("APPDATA")
-    elif user_os == "Darwin":
-        path_to_appdata = expanduser("~/Library/Application Support")
-    else:
-        path_to_appdata = getenv("XDG_DATA_HOME", expanduser("~/.local/share"))
+    data = str(timestamp + " " + str(data) + "\n")
 
-    if os_path_exists(join(path_to_appdata, "PyEducate")):
-        if os_path_exists((join(path_to_appdata, "PyEducate", "server"))):
-            full_path_data = join(path_to_appdata, "PyEducate", "server")
-        else:
-            full_path_data = join(path_to_appdata, "PyEducate", "server")
-            makedirs(full_path_data)
-    else:
-        makedirs(join(path_to_appdata, "PyEducate"))
-        makedirs(join(path_to_appdata, "PyEducate", "server"))
-        full_path_data = join(path_to_appdata, "PyEducate", "server")
+    try:
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(data)
 
-    return full_path_data
+    except FileNotFoundError:
+        with open(log_path, "w", encoding="utf-8") as f:
+            f.write(data)
 
+    except PermissionError:
+        print(f"[!] Insufficient permissions!\nUnable to log data at {log_path}!")
 
 class Editor(QMainWindow):
     def __init__(self):
@@ -54,26 +48,6 @@ class Editor(QMainWindow):
         self.edit_json_file = False
         self.setContentsMargins(40, 40, 40, 40)
         self._initui()
-
-    def log_error(self, data):
-
-        # Get current time
-        now = datetime.now()
-        timestamp = now.strftime("%d-%m-%Y %H:%M:%S")
-        log_path = join(get_appdata_path(), "lesson-editor.log")
-
-        data = str(timestamp + " " + str(data) + "\n")
-
-        try:
-            with open(log_path, "a", encoding="utf-8") as f:
-                f.write(data)
-
-        except FileNotFoundError:
-            with open(log_path, "w", encoding="utf-8") as f:
-                f.write(data)
-
-        except PermissionError:
-            print(f"[!] Insufficient permissions!\nUnable to log data at {log_path}!")
 
     def list_lessons(self):
         file_path = join(get_appdata_path(), "lessons.json")
@@ -114,7 +88,7 @@ class Editor(QMainWindow):
                             str(quiz["answer"]),
                         )
             except Exception as e:
-                self.log_error(e)
+                log_error(e)
                 return None
 
     def create_json(self):
@@ -145,7 +119,7 @@ class Editor(QMainWindow):
                     data = load(f)
 
             except FileNotFoundError as fe:
-                self.log_error(fe)
+                log_error(fe)
                 return
 
             for lesson in data["lessons"]:
@@ -181,7 +155,7 @@ class Editor(QMainWindow):
                 print("✅ Dictionary is JSON serializable")
             except (TypeError, OverflowError) as e:
                 print("❌ Not JSON serializable:", e)
-                self.log_error(e)
+                log_error(e)
                 return
 
         else:
@@ -191,7 +165,7 @@ class Editor(QMainWindow):
             except JSONDecodeError as e:
                 print("❌ Invalid JSON:", e)
                 print(new_lesson)
-                self.log_error(e)
+                log_error(e)
                 return
 
         # Load from file
@@ -228,7 +202,7 @@ class Editor(QMainWindow):
                     points = correct_lesson["points"]
 
                 except Exception as e:
-                    self.log_error(e)
+                    log_error(e)
                     points = "0"
 
                 try:
@@ -247,7 +221,7 @@ class Editor(QMainWindow):
                         )
 
                 except Exception as e:
-                    self.log_error(e)
+                    log_error(e)
                     break
 
     def del_json(self):
@@ -283,7 +257,7 @@ class Editor(QMainWindow):
                 )
 
         except Exception as e:
-            self.log_error(e)
+            log_error(e)
 
     def _initui(self):
         central = QWidget()
@@ -364,7 +338,7 @@ class Editor(QMainWindow):
                     int(lesson_id)
                 except (ValueError, TypeError) as ve:
                     print(ve)
-                    self.log_error(ve)
+                    log_error(ve)
                     return
 
                 data = self.find_lesson(lesson_id)
@@ -705,7 +679,7 @@ class Editor(QMainWindow):
                         break
 
             except FileNotFoundError as fe:
-                self.log_error(fe)
+                log_error(fe)
                 return
 
             if is_valid_id:

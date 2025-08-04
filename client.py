@@ -3,15 +3,15 @@
 
 # ---------------------------[ DEPENDENCIES ]---------------------------
 from sys import argv as sys_argv, exit as sys_exit
-from json import load as json_load, dump, JSONDecodeError, loads
+from json import load as json_load, dump, JSONDecodeError
 from threading import Thread
 from time import sleep
 from os import getenv, makedirs
 from os.path import exists as os_path_exists, expanduser, join
 from datetime import datetime
 from platform import system
+from ClientUtils import connectmod
 
-import connectmod
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -955,7 +955,7 @@ class MainWindow(QMainWindow):
     def _init_lesson(self, lesson):
         def _submit_lesson():
             try:
-                self.press_button(int(lesson["id"]), int(lesson["points"]))
+                self.press_button(int(lesson["id"]), float(lesson["points"]))
 
             except Exception as e:
                 self.press_button(int(lesson["id"]))
@@ -1338,7 +1338,7 @@ class MainWindow(QMainWindow):
         clear_all_data.clicked.connect(delete_all_data)
         reset_leaderboard_button.clicked.connect(reset_leaderboard)
 
-    def press_button(self, id_l, max_points=0):
+    def press_button(self, id_l, max_points=0.0):
         if (
             str(self.user_input.toPlainText()).replace('"', "'").rstrip()
             == self.answer.rstrip()
@@ -1347,7 +1347,7 @@ class MainWindow(QMainWindow):
                 "background-color: hsl(115, 100%, 70%)"
             )  # light green
             self.lessons_completed += 1
-            self.points += round((int(max_points) / int(self.lesson_attempt)), 2)
+            self.points += round((float(max_points) / int(self.lesson_attempt)), 2)
             self.lesson_attempt = 1
             lesson = self.mark_lesson_finish(id_l)
             lesson["completed"] = "True"
