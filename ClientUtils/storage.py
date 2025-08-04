@@ -3,6 +3,7 @@ from os.path import join
 from .paths import get_appdata_path
 from .logger import log_error
 
+
 # After download, the downloaded lesson gets sent here to be added to the JSON file containing locally-stored lessons.
 def get_json_file(new_lessons):
     file_path = join(get_appdata_path(), "lessons.json")

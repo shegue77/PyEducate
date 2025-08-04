@@ -2,6 +2,7 @@ from platform import system
 from os import getenv, makedirs
 from os.path import exists as os_path_exists, expanduser, join
 
+
 # Function gets the full path to APPDATA.
 def get_appdata_path():
     user_os = system()
