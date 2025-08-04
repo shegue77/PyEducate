@@ -2,6 +2,7 @@ from datetime import datetime
 from os.path import join
 from .paths import get_appdata_path
 
+
 def log_error(data):
 
     # Get current time

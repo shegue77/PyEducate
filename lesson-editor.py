@@ -21,6 +21,7 @@ from ServerUtils.paths import get_appdata_path
 
 # ----------------------------------------------------------------------------------------------------------------------------
 
+
 def log_error(data):
     # Get current time
     now = datetime.now()
@@ -39,6 +40,7 @@ def log_error(data):
 
     except PermissionError:
         print(f"[!] Insufficient permissions!\nUnable to log data at {log_path}!")
+
 
 class Editor(QMainWindow):
     def __init__(self):
