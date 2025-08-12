@@ -8,17 +8,19 @@ from os.path import join
 from sys import exit as sys_exit
 from schedule import every, run_pending
 
-from ServerUtils.paths import get_appdata_path
-from ServerUtils.logger import log_error
-from ServerUtils.admin import ban_user, unban_user, check_if_banned, list_banned
-from ServerUtils.help import show_version, show_license, help_data
-from ServerUtils.storage import update_leaderboard, send_leaderboard, send_json
+from utils.server.paths import get_appdata_path
+from utils.server.logger import log_error
+from utils.server.admin import ban_user, unban_user, check_if_banned, list_banned
+from utils.server.help import show_version, show_license, help_data
+from utils.server.storage import update_leaderboard
+from network.server.storage import send_leaderboard, send_json
+from utils.server.SetupServer import setup
 
 # ----------------------------------------------------------------------
 
 
 # -------------------------[ GLOBAL VARIABLES ]-------------------------
-app_version = "v1.0.0"
+app_version = "v1.2.0"
 clients: dict = {}  # Keeps track of clients
 usernames: dict = {}  # Keeps track of usernames of clients
 active_threads: list = []  # Keeps track of (most) active threads.
@@ -148,18 +150,17 @@ def start_server(
     if str(host) == "" or str(host) == "::" or str(host) == "0.0.0.0":
         host = str(
             input(
-                ""
-                "[!!] Warning!"
-                "A critical security risk has been found!\n"
-                "Please enter your IP address (not '', 0.0.0.0 or ::): "
+                "\n"
+                "[!!] Warning! "
+                "A security risk has been found!\n"
+                "Please verify that you want to bind to all network interfaces.\n"
+                "Please enter your IP address (not the following "
+                "unless you want to bind to all network "
+                "interfaces -> ('', 0.0.0.0 or :: ): "
             )
         )
         if str(host) == "" or str(host) == "::" or str(host) == "0.0.0.0":
-            print(
-                "[!!] Unable to start server due to security risks.\nShutting down..."
-            )
-            log_error("[!!] Unable to start server due to security risks.")
-            return
+            print("[*] Binding to all network interfaces.")
 
     server.bind((host, port))
     server.listen()
@@ -487,167 +488,11 @@ def process_commands(server, server_data):
 # and IP TYPE (IPv4/IPv6) of the server
 # and connects to the server.
 if __name__ == "__main__":
-    full_path = get_appdata_path()
-    ANSWER = str(input("Would you like to change any settings (y/n): ")).strip().lower()
-    SERVER_IP: str = ""
-    if ANSWER in ("y", "yes"):
-        SERVER_PORT = int(input("Enter server port: "))
-        IP_TYPE = str(input("Enter IP type (IPv4/IPv6): ")).lower()
 
-        if IP_TYPE.strip() == "ipv6":
-
-            hostname = socket.gethostname()
-            try:
-                for info in socket.getaddrinfo(hostname, None):
-                    if info[0] == socket.AF_INET6:  # Check for IPv6
-                        SERVER_IP = str(info[4][0])
-
-                if SERVER_IP == "":
-                    SERVER_IP = input("Enter local IP address (IPv6): ")
-            except socket.gaierror:
-
-                SERVER_IP = input("Enter local IP address (IPv6): ")
-
-        else:
-            SERVER_IP = socket.gethostbyname(socket.gethostname())
-
-        with open(join(full_path, "connect-data.txt"), "w", encoding="utf-8") as f:
-            f.write(f"{SERVER_PORT}\n{IP_TYPE}")
-
-    try:
-
-        with open(join(full_path, "connect-data.txt"), "r", encoding="utf-8") as f:
-            SERVER_PORT = int(f.readline().strip().replace(" ", ""))
-            try:
-                IP_TYPE = str(f.readline().strip()).lower()
-
-            except Exception as e:
-                print(
-                    "[!] Unable to extract IP type (IPv4/IPv6)," "defaulting to IPv4..."
-                )
-                IP_TYPE = "ipv4"
-                log_error(e)
-
-            END_MARKER = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"
-
-        if IP_TYPE.strip() == "ipv6":
-            hostname = socket.gethostname()
-            try:
-                for info in socket.getaddrinfo(hostname, None):
-                    if info[0] == socket.AF_INET6:  # Check for IPv6
-                        SERVER_IP = str(info[4][0])
-
-                if SERVER_IP == "":
-                    SERVER_IP = input("Enter local IP address (IPv6): ")
-
-            except socket.gaierror:
-                print("Hostname could not be resolved.")
-                SERVER_IP = input("Enter local IP address (IPv6): ")
-
-        else:
-            SERVER_IP = socket.gethostbyname(socket.gethostname())
-
-    except FileNotFoundError as fe:
-        log_error(fe)
-        print("[!] Unable to locate save data!\n")
-        SERVER_PORT = int(input("Enter server port: "))
-        IP_TYPE = str(input("Enter IP type (IPv4/IPv6): ")).lower()
-        END_MARKER = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"
-
-        if IP_TYPE.strip() == "ipv6":
-            hostname = socket.gethostname()
-            try:
-                for info in socket.getaddrinfo(hostname, None):
-                    if info[0] == socket.AF_INET6:  # Check for IPv6
-                        SERVER_IP = str(info[4][0])
-
-                if SERVER_IP == "":
-                    SERVER_IP = input("Enter local IP address (IPv6): ")
-
-            except socket.gaierror:
-                print("Hostname could not be resolved.")
-                SERVER_IP = input("Enter local IP address (IPv6): ")
-
-        else:
-            SERVER_IP = socket.gethostbyname(socket.gethostname())
-
-        with open(join(full_path, "connect-data.txt"), "w", encoding="utf-8") as f:
-            f.write(f"{SERVER_PORT}\n{IP_TYPE}")
-
-    EMERGENCY_COMMAND_PROMPT = str(
-        input("Would you like to enter safe mode (DEBUG) (y/n): ")
+    SERVER_IP, SERVER_PORT, IP_TYPE, END_MARKER, outcome = setup(
+        app_version, END_MARKER
     )
-    if EMERGENCY_COMMAND_PROMPT in ("y", "yes"):
-        print()
-        print("Emergency Console | Safe Boot")
-        print("Server Status: Offline")
-        print("\nExit safe mode to start the server.\n\n")
-        SAFE_MODE_COMMANDS = """
-Emergency Commands:
-    !help
-        Shows the available commands.
+    if outcome == "shutdown":
+        sys_exit(0)
 
-    !info
-        Displays info about the server.
-
-    !version
-        Shows the version of the application.
-
-    !license
-        Shows license information about the application.
-
-    !showblacklist
-        Displays the list of all banned IP addresses.
-
-    !ban <IP_ADDRESS> [reason] [severity]
-        Bans (prevents) an IP address from connecting to the server.
-        Example: !ban 127.0.0.1 port_scanning high
-
-    !unban <IP_ADDRESS>
-        Removes the ban from the specified IP address.
-        Example: !unban 127.0.0.1
-
-    !exit
-        Exits safe mode.
-
-    !shutdown
-        Kills the program.
-"""
-        print(SAFE_MODE_COMMANDS)
-
-        while True:
-            print()
-            COMMAND = str(input("Command: ")).strip().lower()
-
-            if COMMAND.startswith("!help"):
-                print(SAFE_MODE_COMMANDS)
-            elif COMMAND.startswith("!info"):
-                print(
-                    f"SERVER IP: {SERVER_IP}\n"
-                    f"SERVER PORT: {SERVER_PORT}\n"
-                    f"IP TYPE: {IP_TYPE}\n"
-                    f"End marker: {END_MARKER.decode()}\n"
-                )
-            elif COMMAND.startswith("!ban"):
-                ban_user(COMMAND)
-            elif COMMAND.startswith("!unban"):
-                try:
-                    ip_address = str(COMMAND).strip().lower().split()[1]
-                except Exception:
-                    print("[!] IP address not specified!\n" "Unable to unban user!")
-                    continue
-                unban_user(ip_address)
-            elif COMMAND.startswith("!version"):
-                print(show_version(app_version))
-            elif COMMAND.startswith("!license"):
-                print(show_license())
-            elif COMMAND.startswith("!showblacklist"):
-                print(list_banned())
-            elif COMMAND.startswith("!exit"):
-                break
-            elif COMMAND.startswith("!shutdown"):
-                sys_exit(0)
-            else:
-                print("[!] Invalid command!")
-
-    start_server(SERVER_IP, SERVER_PORT, IP_TYPE, END_MARKER)
+    start_server(SERVER_IP, int(SERVER_PORT), IP_TYPE, END_MARKER)
