@@ -15,7 +15,7 @@ print(system(f"pyinstaller --onedir --windowed {client_path}"))
 for part in dist_parts:
     for i in stuff:
         source_path = str(i)
-        destination_path = join("dist", str(part), str(i))
+        destination_path = join("dist", str(part), str(i + ".txt"))
 
         try:
             copy2(source_path, destination_path)
