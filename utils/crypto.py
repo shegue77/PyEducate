@@ -4,10 +4,12 @@ from cryptography.fernet import Fernet
 SERVICE_NAME = "PyEducate Launcher"
 KEY_NAME = "ConfigID"
 
+
 def _write_key():
     key = Fernet.generate_key()
     keyring.set_password(SERVICE_NAME, KEY_NAME, key.decode())
     return key
+
 
 def load_or_create_key():
     key_str = keyring.get_password(SERVICE_NAME, KEY_NAME)

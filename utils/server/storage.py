@@ -8,15 +8,18 @@ from .logger import log_error
 
 _safe_leaderboard = Lock()
 
+
 def write_json(file_path, data):
     with open(file_path, "wb") as f:
         data = dumps(data)
         f.write(encrypt_file(data))
 
+
 def load_json(file_path):
     with open(file_path, "rb") as f:
         data = loads(decrypt_file(f.read()))
     return data
+
 
 def find_lesson(lesson_id):
     file_path = join(get_appdata_path(), "lessons.json")
@@ -43,6 +46,7 @@ def find_lesson(lesson_id):
             log_error(e)
             return None
 
+
 def list_lessons():
     file_path = join(get_appdata_path(), "lessons.json")
     try:
@@ -59,6 +63,7 @@ def list_lessons():
         whole_data += f'Title: {lesson["title"]} | ID: {lesson["id"]}\n'
 
     return whole_data
+
 
 # Load the leaderboard from the JSON file
 def read_leaderboard(filename):
