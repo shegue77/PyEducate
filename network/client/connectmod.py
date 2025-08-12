@@ -8,9 +8,10 @@ from threading import Event
 from os.path import join
 from requests import get
 
-from .paths import get_appdata_path
-from .logger import log_error
+from utils.client.paths import get_appdata_path
+from utils.client.logger import log_error
 from .storage import download_file
+from utils.crypto import decrypt_file, encrypt_file
 
 # ----------------------------------------------------------------------
 
@@ -85,8 +86,8 @@ def start_client(server_ip, server_port, server_type="ipv4"):
         elif command == "!getstats":
             stat_path = str(join(get_appdata_path(), "SAVE_DATA"))
             try:
-                with open(stat_path, "r", encoding="utf-8") as f:
-                    data = f.read().strip().split()
+                with open(stat_path, "rb") as f:
+                    data = decrypt_file(f.read()).strip().split()
                     points = float(data[0])
                     lessons_completed = int(data[1])
 
@@ -137,10 +138,11 @@ def close_client():
 if __name__ == "__main__":
     file_path = join(get_appdata_path(), "connect-data.txt")
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            SERVER_IP = str(f.readline().strip().replace("\n", ""))
-            SERVER_PORT = int(f.readline().strip())
-            IP_TYPE = str(f.readline().strip()).lower()
+        with open(file_path, "rb") as f:
+            data = decrypt_file(f.read()).strip().splitlines()
+            SERVER_IP = str(data[0])
+            SERVER_PORT = int(data[1])
+            IP_TYPE = str(data[2].strip()).lower()
 
     except Exception as fe:
         log_error(fe)
@@ -149,7 +151,8 @@ if __name__ == "__main__":
         SERVER_PORT = int(input("Enter server port: "))
         IP_TYPE = input("Enter IP type (IPv4/IPv6): ").lower()
 
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(f"{SERVER_IP}\n{SERVER_PORT}\n{IP_TYPE}")
+        with open(file_path, "wb") as file:
+            data = f"{SERVER_IP}\n{SERVER_PORT}\n{IP_TYPE}"
+            file.write(encrypt_file(data))
 
     start_client(SERVER_IP, SERVER_PORT, IP_TYPE.lower())
