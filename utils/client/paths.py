@@ -6,6 +6,7 @@ from os.path import exists as os_path_exists, expanduser, join
 # Function gets the full path to APPDATA.
 def get_appdata_path():
     user_os = system()
+
     if user_os == "Windows":
         path_to_appdata = getenv("APPDATA")
     elif user_os == "Darwin":

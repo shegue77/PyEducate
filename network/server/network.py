@@ -1,0 +1,44 @@
+import socket
+
+def get_local_ip_address(ip_type):
+    server_ip = ""
+    if ip_type.strip() == "ipv6":
+        hostname = socket.gethostname()
+        try:
+            for info in socket.getaddrinfo(hostname, None):
+                if info[0] == socket.AF_INET6:  # Check for IPv6
+                    server_ip = str(info[4][0])
+
+            if server_ip == "":
+                server_ip = input("Enter local IP address (IPv6): ")
+
+        except socket.gaierror:
+            print("Hostname could not be resolved.")
+            server_ip = input("Enter local IP address (IPv6): ")
+
+    else:
+        server_ip = socket.gethostbyname(socket.gethostname())
+
+    return server_ip
+
+def validate_ip(ip_address):
+    ip_address = ip_address.strip().split(".")
+    valid_ip: bool = False
+
+    if len(ip_address) == 4:
+        for part in ip_address:
+            try:
+                if 0 <= int(part) <= 255:
+                    valid_ip = True
+                else:
+                    valid_ip = False
+                    break
+
+            except ValueError:
+                valid_ip = False
+                break
+
+    if ip_address[0] == "localhost":
+        valid_ip = True
+
+    return valid_ip

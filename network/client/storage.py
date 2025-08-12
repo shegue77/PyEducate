@@ -1,16 +1,16 @@
-from json import load, loads, dump, JSONDecodeError
+from json import loads, dumps, JSONDecodeError
 from os.path import join
-from .paths import get_appdata_path
-from .logger import log_error
-
+from utils.client.paths import get_appdata_path
+from utils.client.logger import log_error
+from utils.crypto import decrypt_file, encrypt_file
 
 # After download, the downloaded lesson gets sent here to be added to the JSON file containing locally-stored lessons.
-def get_json_file(new_lessons):
+def _get_json_file(new_lessons):
     file_path = join(get_appdata_path(), "lessons.json")
 
     try:
-        with open(file_path, "r", encoding="utf-8") as file:
-            data = load(file)
+        with open(file_path, "rb") as file:
+            data = loads(decrypt_file(file.read()))
 
     except FileNotFoundError:
         data = {"lessons": []}
@@ -33,15 +33,16 @@ def get_json_file(new_lessons):
         lesson["id"] = len(lessons) + 1
         lessons.append(lesson)
 
-    with open(file_path, "w", encoding="utf-8") as f:
-        dump({"lessons": lessons}, f, indent=4)
+    with open(file_path, "wb") as f:
+        data = dumps({"lessons": lessons})
+        f.write(encrypt_file(data))
 
     print(f"✅ Added {len(new_lessons)} lessons.")
     return "SUCCESS"
 
 
 # Downloads the lesson from the server (host).
-def download_file(client_r, mode, END_MARKER):
+def download_file(client_r, mode, end_marker):
 
     print("Listening for data...")
 
@@ -52,11 +53,9 @@ def download_file(client_r, mode, END_MARKER):
 
     file = open(file_path, "wb")
     file_bytes = b""
-    done = False
 
-    while not done:
-        if file_bytes[-34:] == bytes(END_MARKER):
-            done = True
+    while True:
+        if file_bytes[-len(end_marker):] == bytes(end_marker):
             file_bytes = file_bytes[:-34]
             break
 
@@ -64,24 +63,25 @@ def download_file(client_r, mode, END_MARKER):
         print(file_bytes)
         data = client_r.recv(1024)
 
-        if file_bytes[-34:] == bytes(END_MARKER):
-            done = True
+        if file_bytes[-34:] == bytes(end_marker):
             file_bytes = file_bytes[:-34]
+            print("Updated")
+            break
 
         else:
             file_bytes += data
+            print("Updated")
 
-        print("Updated")
-
-    file.write(file_bytes)
+    file.write(encrypt_file(file_bytes))
     file.close()
 
-    lesson = open(file_path, "r", encoding="utf-8").read()
+    ciphertext = open(file_path, "rb").read()
+    lesson = decrypt_file(ciphertext)
     print(lesson)
     print(mode)
 
     if mode == "json":
-        get_json_file(lesson)
+        _get_json_file(lesson)
 
     else:
         try:
@@ -92,6 +92,8 @@ def download_file(client_r, mode, END_MARKER):
             return None
 
         with open(
-            str(join(get_appdata_path(), "leaderboards.json")), "w", encoding="utf-8"
+            str(join(get_appdata_path(), "leaderboards.json")),
+            "wb",
         ) as f:
-            dump(lesson, f)
+            data = dumps(lesson)
+            f.write(encrypt_file(data))
