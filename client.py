@@ -3,14 +3,16 @@
 
 # ---------------------------[ DEPENDENCIES ]---------------------------
 from sys import argv as sys_argv, exit as sys_exit
-from json import load as json_load, dump, JSONDecodeError
+from json import loads, dumps, JSONDecodeError
 from threading import Thread
 from time import sleep
-from os import getenv, makedirs
-from os.path import exists as os_path_exists, expanduser, join
+from os import makedirs
+from os.path import exists as os_path_exists, join
 from datetime import datetime
-from platform import system
-from ClientUtils import connectmod
+from network.client import connectmod
+from utils.client.paths import get_appdata_path
+from utils.crypto import encrypt_file, decrypt_file
+from utils.client.storage import find_lesson, mark_lesson_finish
 
 from PySide6.QtWidgets import (
     QApplication,
@@ -28,6 +30,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import Qt
 from PySide6.QtCore import QSize
+
 
 # ----------------------------------------------------------------------
 
@@ -52,37 +55,14 @@ def log_error(data):
         print(f"[!] Insufficient permissions!\nUnable to log data at {log_path}!")
 
 
-def get_appdata_path():
-    user_os = system()
-    if user_os == "Windows":
-        path_to_appdata = getenv("APPDATA")
-    elif user_os == "Darwin":
-        path_to_appdata = expanduser("~/Library/Application Support")
-    else:
-        path_to_appdata = getenv("XDG_DATA_HOME", expanduser("~/.local/share"))
-
-    if os_path_exists(join(path_to_appdata, "PyEducate")):
-        if os_path_exists((join(path_to_appdata, "PyEducate", "client"))):
-            full_path_data = join(path_to_appdata, "PyEducate", "client")
-        else:
-            full_path_data = join(path_to_appdata, "PyEducate", "client")
-            makedirs(full_path_data)
-    else:
-        makedirs(join(path_to_appdata, "PyEducate"))
-        makedirs(join(path_to_appdata, "PyEducate", "client"))
-        full_path_data = join(path_to_appdata, "PyEducate", "client")
-
-    return full_path_data
-
-
 def disconnect():
     connectmod.close_client()
 
 
-def attempt_connect_loop(SERVER_IP, SERVER_PORT, IP_TYPE):
+def attempt_connect_loop(server_ip, server_port, ip_type):
     while True:
         try:
-            connectmod.start_client(SERVER_IP, SERVER_PORT, IP_TYPE)
+            connectmod.start_client(server_ip, server_port, ip_type)
             break
         except (ConnectionError, ConnectionRefusedError, ConnectionResetError) as e:
             try:
@@ -95,8 +75,8 @@ def attempt_connect_loop(SERVER_IP, SERVER_PORT, IP_TYPE):
 
 
 try:
-    with open(join(get_appdata_path(), "connect-data.txt"), "r", encoding="utf-8") as f:
-        data = f.read().strip().split()
+    with open(join(get_appdata_path(), "connect-data.txt"), "rb") as f:
+        data = decrypt_file(f.read()).strip().split()
         SERVER_IP = str(data[0])
         SERVER_PORT = int(data[1])
         IP_TYPE = str(data[2])
@@ -110,8 +90,9 @@ except FileNotFoundError as fe:
 
 except (ValueError, TypeError, IndexError) as ve:
     print(f"[!!] Corrupted data!\n{ve}")
-    with open(join(get_appdata_path(), "connect-data.txt"), "w", encoding="utf-8") as f:
-        f.write("")
+    file_path = join(get_appdata_path(), "connect-data.txt")
+    with open(file_path, "wb") as file:
+        file.write(encrypt_file(""))
 
 
 class MainWindow(QMainWindow):
@@ -138,10 +119,10 @@ class MainWindow(QMainWindow):
         event.accept()
 
     def save_data(self):
-        file_path = str(join(get_appdata_path(), "SAVE_DATA"))
-        with open(file_path, "w", encoding="utf-8") as f:
-            data = f"{str(self.points)} {str(self.lessons_completed)}"
-            f.write(data)
+        file_path = str(join(get_appdata_path(), "SAVE_DATA.dat"))
+        with open(file_path, "wb") as file:
+            write_data = f"{str(self.points)} {str(self.lessons_completed)}"
+            file.write(encrypt_file(write_data))
         print("Point data saved successfully")
 
     def show_message_box(self, mode, title, text):
@@ -230,8 +211,8 @@ class MainWindow(QMainWindow):
     def reload_json(self):
         file_path = join(get_appdata_path(), "lessons.json")
         try:
-            with open(file_path, "r", encoding="utf-8") as file:
-                self.data = json_load(file)
+            with open(file_path, "rb") as file:
+                self.data = loads(decrypt_file(file.read()))
                 print("reloaded lessons.json")
 
         except FileNotFoundError as fe:
@@ -239,16 +220,17 @@ class MainWindow(QMainWindow):
             print(fe)
             print()
             makedirs(join(get_appdata_path(), "images"), exist_ok=True)
-            if not os_path_exists(file_path):
-                with open(file_path, "w", encoding="utf-8") as file:
-                    data = {"lessons": []}
-                    dump(data, file)
-                    print("reloaded")
+            with open(file_path, "wb") as file:
+                write_data = {"lessons": []}
+                write_data = dumps(write_data)
+                file.write(encrypt_file(write_data))
+                print("reloaded")
 
         except JSONDecodeError:
-            with open(file_path, "w", encoding="utf-8") as file:
-                data = {"lessons": []}
-                dump(data, file)
+            with open(file_path, "wb") as file:
+                write_data = {"lessons": []}
+                write_data = dumps(write_data)
+                file.write(encrypt_file(write_data))
                 print("reloaded")
 
     def submit_id_data(self, id_n):
@@ -262,8 +244,8 @@ class MainWindow(QMainWindow):
                 break
 
             try:
-                with open(file_path, "r", encoding="utf-8") as file:
-                    self.data = json_load(file)
+                with open(file_path, "rb") as file:
+                    self.data = loads(decrypt_file(file.read()))
                     print("reloaded")
 
             except FileNotFoundError as fe:
@@ -272,23 +254,24 @@ class MainWindow(QMainWindow):
                 print()
                 makedirs(join(get_appdata_path(), "images"), exist_ok=True)
                 if not os_path_exists(file_path):
-                    with open(file_path, "w", encoding="utf-8") as file:
-                        data = {"lessons": []}
-                        dump(data, file)
+                    with open(file_path, "wb") as file:
+                        write_data = {"lessons": []}
+                        write_data = dumps(write_data)
+                        file.write(encrypt_file(write_data))
 
             except Exception as e:
-                with open(file_path, "r", encoding="utf-8") as file:
-                    self.data = json_load(file)
+                with open(file_path, "rb") as file:
+                    self.data = loads(decrypt_file(file.read()))
                     print("reloaded")
                 print(e)
                 break
 
         if status == "Success":
-            self._init_lesson(correct_lesson)
+            self.init_lesson(correct_lesson)
         else:
             try:
-                with open(file_path, "r", encoding="utf-8") as file:
-                    self.data = json_load(file)
+                with open(file_path, "rb") as file:
+                    self.data = loads(decrypt_file(file.read()))
                     print("reloaded")
 
             except FileNotFoundError as fe:
@@ -297,36 +280,41 @@ class MainWindow(QMainWindow):
                 print()
                 makedirs(join(get_appdata_path(), "images"), exist_ok=True)
                 if not os_path_exists(file_path):
-                    with open(file_path, "w", encoding="utf-8") as file:
-                        data = {"lessons": []}
-                        dump(data, file)
+                    with open(file_path, "wb") as file:
+                        write_data = {"lessons": []}
+                        write_data = dumps(write_data)
+                        file.write(encrypt_file(write_data))
 
             except JSONDecodeError:
-                with open(file_path, "w", encoding="utf-8") as file:
-                    data = {"lessons": []}
-                    dump(data, file)
+                with open(file_path, "wb") as file:
+                    write_data = {"lessons": []}
+                    write_data = dumps(write_data)
+                    file.write(encrypt_file(write_data))
 
     def get_lessons_for_page(self, page_number):
         file_path = join(get_appdata_path(), "lessons.json")
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json_load(f)
+            with open(file_path, "rb") as file:
+                data = loads(decrypt_file(file.read()))
 
         except FileNotFoundError as fe:
             log_error(fe)
             print(fe)
             print()
             makedirs(join(get_appdata_path(), "images"), exist_ok=True)
-            if not os_path_exists(file_path):
-                with open(file_path, "w", encoding="utf-8") as file:
-                    data = {"lessons": []}
-                    dump(data, file)
+            with open(file_path, "wb") as file:
+                write_data = {"lessons": []}
+                write_data = dumps(write_data)
+                file.write(encrypt_file(write_data))
             return []
 
-        except JSONDecodeError:
-            with open(file_path, "w", encoding="utf-8") as file:
-                data = {"lessons": []}
-                dump(data, file)
+        except JSONDecodeError as je:
+            log_error(je)
+
+            with open(file_path, "wb") as file:
+                write_data = {"lessons": []}
+                write_data = dumps(write_data)
+                file.write(encrypt_file(write_data))
 
         items_per_page = 8
         start_index = (page_number - 1) * items_per_page
@@ -346,13 +334,14 @@ class MainWindow(QMainWindow):
         file_path = join(get_appdata_path(), "lessons.json")
 
         def create_json():
-            with open(file_path, "w", encoding="utf-8") as file:
-                json_data = {"lessons": []}
-                dump(json_data, file, indent=4)
+            with open(file_path, "wb") as f:
+                write_data = {"lessons": []}
+                write_data = dumps(write_data)
+                f.write(encrypt_file(write_data))
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json_load(f)
+            with open(file_path, "rb") as f:
+                data = loads(decrypt_file(f.read()))
 
         except FileNotFoundError as fe:
             log_error(fe)
@@ -362,84 +351,30 @@ class MainWindow(QMainWindow):
             return 1
 
         except JSONDecodeError:
-            with open(file_path, "w", encoding="utf-8") as file:
-                data = {"lessons": []}
-                dump(data, file)
+            with open(file_path, "wb") as f:
+                write_data = {"lessons": []}
+                write_data = dumps(write_data)
+                f.write(encrypt_file(write_data))
 
         whole_data = []
-        try:
-            print(data["lessons"])
-        except (TypeError, IndexError):
-            return None
         pages = (len(data["lessons"]) + 8 - 1) // 8
         for lesson in data["lessons"]:
             whole_data.append(int(lesson["id"]))
 
         return pages
 
-    @staticmethod
-    def find_lesson(lesson_id):
-        file_path = join(get_appdata_path(), "lessons.json")
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json_load(f)
-        except FileNotFoundError as fe:
-            print(fe)
-            print()
-            makedirs(join(get_appdata_path(), "images"), exist_ok=True)
-            if not os_path_exists(file_path):
-                with open(file_path, "w", encoding="utf-8") as file:
-                    data = {"lessons": []}
-                    dump(data, file)
-                return None
-
-        except JSONDecodeError:
-            with open(file_path, "w", encoding="utf-8") as file:
-                data = {"lessons": []}
-                dump(data, file)
-
-        for lesson in data["lessons"]:
-            try:
-                if int(lesson["id"]) == int(lesson_id):
-                    try:
-                        is_complete = str(lesson["completed"])
-                    except Exception as e:
-                        is_complete = "False"
-                        print(e)
-
-                    for quiz in lesson["quiz"]:  # Loop over the quiz list
-                        print(quiz["question"])
-
-                        return (
-                            str(lesson["id"]),
-                            str(lesson["title"]),
-                            str(lesson["image"]),
-                            str(lesson["description"]),
-                            str(lesson["content"]),
-                            str(quiz["question"]),
-                            str(quiz["answer"]),
-                            str(is_complete),
-                        )
-
-            except Exception as e:
-                print(e)
-                return None
-
-    def set_completed(self):
-        pass
-
     def search(self):
-        save_data_path = join(get_appdata_path(), "SAVE_DATA")
+        save_data_path = join(get_appdata_path(), "SAVE_DATA.dat")
         try:
-            with open(save_data_path, "r", encoding="utf-8") as f:
-                save_data = f.read().strip().split()
+            with open(save_data_path, "rb") as f:
+                save_data = decrypt_file(f.read()).strip().split()
                 self.points = float(save_data[0])
                 self.lessons_completed = int(save_data[1])
 
         except FileNotFoundError as fe:
             log_error(fe)
-            with open(save_data_path, "w", encoding="utf-8") as f:
-                f.write("0 0")
+            with open(save_data_path, "wb") as f:
+                f.write(encrypt_file("0 0"))
 
         except IndexError as ie:
             self.points = 0.0
@@ -476,8 +411,6 @@ class MainWindow(QMainWindow):
                 break
 
         def next_page_set(total_page: int):
-            print(total_page)
-            print(self.page >= total_page)
             if self.page >= total_page:
                 return None
 
@@ -541,8 +474,7 @@ class MainWindow(QMainWindow):
         for idx, lesson in enumerate(passed_lessons):
 
             if lesson is not None:
-                data = self.find_lesson(lesson)
-                print(data[1])
+                data = find_lesson(lesson)
                 try:
                     text = QLabel(
                         f"{data[1]}\n{data[3]}\nID: {data[0]}\nCompleted: {data[7]}"
@@ -717,20 +649,20 @@ class MainWindow(QMainWindow):
         previous_page.clicked.connect(previous_page_set)
         next_page.clicked.connect(lambda: next_page_set(total_pages))
         reload_lessons.clicked.connect(reload_ui)
-        settings.clicked.connect(self._init_settings)
+        settings.clicked.connect(self.init_settings)
         show_leaderboard.clicked.connect(self.init_leaderboard)
 
     def init_leaderboard(self):
         def read_leaderboard(filename):
             if not os_path_exists(filename):
                 # Create empty file if it doesn't exist
-                with open(filename, "w", encoding="utf-8") as f:
-                    dump([], f)
+                with open(filename, "wb") as file:
+                    file.write(encrypt_file(dumps([])))
                 return []
 
-            with open(filename, "r", encoding="utf-8") as f:
+            with open(filename, "rb") as file:
                 try:
-                    json_data = json_load(f)
+                    json_data = loads(decrypt_file(file.read()))
                     return json_data
                 except Exception as e:
                     log_error(e)
@@ -748,24 +680,24 @@ class MainWindow(QMainWindow):
             file_path = join(get_appdata_path(), "leaderboards.json")
 
             def create_json():
-                with open(file_path, "w", encoding="utf-8") as file:
+                with open(file_path, "wb") as f:
                     json_data = []
-                    dump(json_data, file, indent=4)
+                    f.write(encrypt_file(dumps(json_data)))
 
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    data = json_load(f)
+                with open(file_path, "rb") as f:
+                    data = loads(decrypt_file(f.read()))
 
             except FileNotFoundError as fe:
-                print(fe)
-                print()
+                log_error(fe)
                 create_json()
                 data = []
 
-            except JSONDecodeError:
-                with open(file_path, "w", encoding="utf-8") as file:
+            except JSONDecodeError as je:
+                log_error(je)
+                with open(file_path, "wb") as file:
                     data = []
-                    dump(data, file)
+                    file.write(encrypt_file(data))
 
             leaderboard_items = []
 
@@ -775,12 +707,9 @@ class MainWindow(QMainWindow):
                         leaderboard_items.append(i)
                 break
 
-            print(len(leaderboard_items))
             return leaderboard_items, len(leaderboard_items)
 
         def next_page_set(total_page: int):
-            print(total_page)
-            print(self.leaderboard_page >= total_page)
             if self.leaderboard_page >= total_page:
                 return None
 
@@ -952,14 +881,14 @@ class MainWindow(QMainWindow):
         next_page.clicked.connect(lambda: next_page_set(total_pages))
         go_back.clicked.connect(self.search)
 
-    def _init_lesson(self, lesson):
+    def init_lesson(self, lesson):
         def _submit_lesson():
             try:
                 self.press_button(int(lesson["id"]), float(lesson["points"]))
 
             except Exception as e:
-                self.press_button(int(lesson["id"]))
                 log_error(e)
+                self.press_button(int(lesson["id"]))
 
         options_text = ""
         for quiz in lesson["quiz"]:  # Loop over the quiz list
@@ -1044,38 +973,7 @@ class MainWindow(QMainWindow):
         self.submit.clicked.connect(_submit_lesson)
         go_back.clicked.connect(self.search)
 
-    @staticmethod
-    def mark_lesson_finish(lesson_id):
-        file_path = join(get_appdata_path(), "lessons.json")
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json_load(f)
-
-        except FileNotFoundError as fe:
-            print(fe)
-            print()
-            makedirs(join(get_appdata_path(), "images"), exist_ok=True)
-            if not os_path_exists(file_path):
-                with open(file_path, "w", encoding="utf-8") as file:
-                    data = {"lessons": []}
-                    dump(data, file)
-                return None
-
-        except JSONDecodeError:
-            with open(file_path, "w", encoding="utf-8") as file:
-                data = {"lessons": []}
-                dump(data, file)
-
-        for lesson in data["lessons"]:
-            try:
-                if int(lesson["id"]) == int(lesson_id):
-                    return lesson
-
-            except Exception as e:
-                print(e)
-                return None
-
-    def _init_settings(self):
+    def init_settings(self):
 
         def set_connect_data():
             file_path = join(get_appdata_path(), "connect-data.txt")
@@ -1093,9 +991,9 @@ class MainWindow(QMainWindow):
                     )
                     return
 
-            with open(file_path, "w", encoding="utf-8") as file:
+            with open(file_path, "wb") as file:
                 data = f"{required_texts[0].text().strip()} {required_texts[1].text().strip()} {required_texts[2].text().strip()}"
-                file.write(data)
+                file.write(encrypt_file(data))
 
             self.show_message_box(
                 "info",
@@ -1106,7 +1004,7 @@ class MainWindow(QMainWindow):
 
         def clear_log():
             file_path = join(get_appdata_path(), "client.log")
-            file_path_2 = file_path = join(get_appdata_path(), "client-module.log")
+            file_path_2 = join(get_appdata_path(), "client-module.log")
 
             try:
                 with open(file_path, "w", encoding="utf-8") as f:
@@ -1131,8 +1029,8 @@ class MainWindow(QMainWindow):
             file_path = join(get_appdata_path(), "lessons.json")
 
             try:
-                with open(file_path, "w", encoding="utf-8") as f:
-                    f.write("")
+                with open(file_path, "wb") as f:
+                    f.write(encrypt_file(""))
 
                 self.show_message_box(
                     "info", "Lesson deletion", "All lessons were successfully deleted."
@@ -1147,8 +1045,8 @@ class MainWindow(QMainWindow):
             file_path = join(get_appdata_path(), "leaderboards.json")
 
             try:
-                with open(file_path, "w", encoding="utf-8") as f:
-                    f.write("")
+                with open(file_path, "wb") as f:
+                    f.write(encrypt_file(""))
 
                 self.show_message_box(
                     "info",
@@ -1169,25 +1067,25 @@ class MainWindow(QMainWindow):
             self.points = 0.0
 
             file_path = join(get_appdata_path(), "connect-data.txt")
-            file_path_2 = join(get_appdata_path(), "SAVE_DATA")
+            file_path_2 = join(get_appdata_path(), "SAVE_DATA.dat")
 
             try:
-                with open(file_path, "w", encoding="utf-8") as f:
-                    f.write("")
+                with open(file_path, "wb") as f:
+                    f.write(encrypt_file(""))
 
             except (FileNotFoundError, PermissionError) as e:
                 log_error(e)
                 print(e)
 
             try:
-                with open(file_path_2, "w", encoding="utf-8") as f:
-                    f.write("")
+                with open(file_path_2, "wb") as f:
+                    f.write(encrypt_file(""))
 
             except (FileNotFoundError, PermissionError) as e:
                 log_error(e)
                 print(e)
 
-            self._init_settings()
+            self.init_settings()
             self.show_message_box(
                 "warning",
                 "Data deletion",
@@ -1217,8 +1115,6 @@ class MainWindow(QMainWindow):
             f"Connection Status: "
             f"{'Connected 🛜' if connectmod.is_connected() else 'Disconnected ❌'}"
         )
-        print(self.points)
-        print(self.lessons_completed)
 
         points_earned.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         lessons_completed.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
@@ -1237,11 +1133,13 @@ class MainWindow(QMainWindow):
         go_back = QPushButton("Go Back ↩️", self)
 
         try:
-            with open(file_path, "r", encoding="utf-8") as file:
-                file_data = file.read().split()
-                self.server_ip_text.setText(str(file_data[0]))
-                self.server_port_text.setText(str(file_data[1]))
-                self.server_type_text.setText(str(file_data[2]))
+            with open(file_path, "rb") as file:
+                file_data = file.read()
+                if file_data:
+                    file_data = decrypt_file(file_data).split()
+                    self.server_ip_text.setText(str(file_data[0]))
+                    self.server_port_text.setText(str(file_data[1]))
+                    self.server_type_text.setText(str(file_data[2]))
 
         except (FileNotFoundError, PermissionError, IndexError) as e:
             log_error(e)
@@ -1349,20 +1247,22 @@ class MainWindow(QMainWindow):
             self.lessons_completed += 1
             self.points += round((float(max_points) / int(self.lesson_attempt)), 2)
             self.lesson_attempt = 1
-            lesson = self.mark_lesson_finish(id_l)
+            lesson = mark_lesson_finish(id_l)
             lesson["completed"] = "True"
 
             file_path = join(get_appdata_path(), "lessons.json")
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json_load(f)
+
+            with open(file_path, "rb") as file:
+                data = loads(decrypt_file(file.read()))
 
             for idx, lsn in enumerate(data["lessons"]):
                 if int(lsn["id"]) == id_l:
                     data["lessons"][idx] = lesson
                     break
 
-            with open(file_path, "w", encoding="utf-8") as f:
-                dump(data, f)
+            with open(file_path, "wb") as f:
+                data = dumps(data)
+                f.write(encrypt_file(data))
 
             self.save_data()
             self.reload_json()

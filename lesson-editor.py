@@ -3,7 +3,7 @@
 
 # ------------------------------------------------------[ DEPENDENCIES ]-----------------------------------------------------
 from sys import argv as sys_argv, exit as sys_exit
-from json import load, loads, dump, dumps, JSONDecodeError
+from json import loads, dumps, JSONDecodeError
 from datetime import datetime
 from os.path import join
 from PySide6.QtWidgets import (
@@ -17,7 +17,8 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
 )
 from PySide6.QtGui import Qt
-from ServerUtils.paths import get_appdata_path
+from utils.server.paths import get_appdata_path
+from utils.server.storage import list_lessons, find_lesson, load_json, write_json
 
 # ----------------------------------------------------------------------------------------------------------------------------
 
@@ -47,133 +48,63 @@ class Editor(QMainWindow):
         super().__init__()
         self.setWindowTitle("PyEducate: Lesson Editor")
         self.id_input = 1
-        self.edit_json_file = False
         self.setContentsMargins(40, 40, 40, 40)
-        self._initui()
-
-    def list_lessons(self):
-        file_path = join(get_appdata_path(), "lessons.json")
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = load(f)
-
-        except FileNotFoundError:
-            with open(file_path, "w", encoding="utf-8") as f:
-                data = {"lessons": []}
-                dump(data, f)
-
-        whole_data = ""
-        for lesson in data["lessons"]:
-            whole_data += f'Title: {lesson["title"]} | ID: {lesson["id"]}\n'
-
-        return whole_data
-
-    def find_lesson(self, lesson_id):
-        file_path = join(get_appdata_path(), "lessons.json")
-
-        with open(file_path, "r", encoding="utf-8") as f:
-            data = load(f)
-
-        for lesson in data["lessons"]:
-            try:
-                if int(lesson["id"]) == int(lesson_id):
-                    for quiz in lesson["quiz"]:  # Loop over the quiz list
-                        print(quiz["question"])
-
-                        return (
-                            str(lesson["id"]),
-                            str(lesson["title"]),
-                            str(lesson["image"]),
-                            str(lesson["description"]),
-                            str(lesson["content"]),
-                            str(quiz["question"]),
-                            str(quiz["answer"]),
-                        )
-            except Exception as e:
-                log_error(e)
-                return None
+        self.initui()
 
     def create_json(self):
         file_path = join(get_appdata_path(), "lessons.json")
 
-        if not self.edit_json_file:
-            title = str(self.title_name.text())
-            mild_desc = str(self.description_text.text())
-            image = str(self.image_path.text())
-            content = str(self.content_text.toPlainText().replace("\n", "\\n"))
-            question = '"' + str(self.quiz_question_text.text()) + '"'
-            answer = (
-                '"'
-                + str(self.quiz_answer_text.toPlainText().replace("\n", "\\n"))
-                + '"'
-            )
-            points = str(self.point_amount.text())
-        else:
-            pass
+        title = str(self.title_name.text())
+        mild_desc = str(self.description_text.text())
+        image = str(self.image_path.text())
+        content = str(self.content_text.toPlainText().replace("\n", "\\n"))
+        question = str(self.quiz_question_text.text())
+        answer = str(self.quiz_answer_text.toPlainText().replace("\n", "\\n"))
+        points = str(self.point_amount.text())
 
-        quiz = '[{"question": ' + question + ', "answer": ' + answer + "}]"
+        quiz = [{"question": question, "answer": answer}]
 
-        def read_json():
-            file_path = join(get_appdata_path(), "lessons.json")
+        def read_lesson():
+            lesson_path = join(get_appdata_path(), "lessons.json")
 
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    data = load(f)
+                json_data = load_json(lesson_path)
 
             except FileNotFoundError as fe:
                 log_error(fe)
                 return
 
-            for lesson in data["lessons"]:
-                for id_num in str(lesson["id"]):
-                    if id_num == str(self.id_input):
-                        self.id_input += 1
-                        read_json()
-                        return
+            for lesson in json_data["lessons"]:
+                if str(lesson["id"]) == str(self.id_input):
+                    self.id_input += 1
+                    read_lesson()
+                    return
 
-        read_json()
+        read_lesson()
 
-        new_lesson = (
-            '{"id": '
-            + str(self.id_input)
-            + ', "title": "'
-            + title
-            + '", "description": "'
-            + mild_desc
-            + '", "image": "'
-            + image
-            + '", "content": "'
-            + content
-            + '", "points": '
-            + points
-            + ', "quiz": '
-            + quiz
-            + "}"
+        new_lesson = dumps(
+            {
+                "id": str(self.id_input),
+                "title": title,
+                "description": mild_desc,
+                "image": image,
+                "content": content,
+                "points": points,
+                "quiz": quiz,
+            }
         )
 
-        if isinstance(new_lesson, dict):
-            try:
-                dumps(new_lesson)
-                print("✅ Dictionary is JSON serializable")
-            except (TypeError, OverflowError) as e:
-                print("❌ Not JSON serializable:", e)
-                log_error(e)
-                return
-
-        else:
-            try:
-                new_lesson = loads(new_lesson)
-                print("✅ JSON is valid")
-            except JSONDecodeError as e:
-                print("❌ Invalid JSON:", e)
-                print(new_lesson)
-                log_error(e)
-                return
+        try:
+            new_lesson = loads(new_lesson)
+            print("✅ JSON is valid")
+        except JSONDecodeError as e:
+            print("❌ Invalid JSON:", e)
+            log_error(e)
+            return
 
         # Load from file
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = load(f)
+            data = load_json(file_path)
 
         except FileNotFoundError:
             data = {"lessons": []}
@@ -182,15 +113,12 @@ class Editor(QMainWindow):
         data["lessons"].append(new_lesson)
 
         # Save back to file
-        with open(file_path, "w", encoding="utf-8") as f:
-            dump(data, f, indent=2)
-            print("data written")
-            self._initui()
+        write_json(file_path, data)
+        self.initui()
 
     def edit_json(self, id_n):
         file_path = join(get_appdata_path(), "lessons.json")
-        with open(file_path, "r") as file:
-            data = load(file)
+        data = load_json(file_path)
 
         for lesson in data["lessons"]:
             if int(lesson["id"]) == int(id_n):
@@ -209,7 +137,6 @@ class Editor(QMainWindow):
 
                 try:
                     for quiz in correct_lesson["quiz"]:  # Loop over the quiz list
-                        print(quiz["question"])
                         options_text = str(quiz["question"])
                         answer = str(quiz["answer"])
                         return (
@@ -227,20 +154,16 @@ class Editor(QMainWindow):
                     break
 
     def del_json(self):
-        id_input = self.id_input
-
         file_path = join(get_appdata_path(), "lessons.json")
 
-        with open(file_path, "r") as f:
-            data = load(f)
+        data = load_json(file_path)
 
         for lesson in data["lessons"]:
             for id_num in str(lesson["id"]):
-                if id_num == str(id_input):
+                if id_num == str(self.id_input):
                     data["lessons"].remove(lesson)
-                    with open(file_path, "w") as f:
-                        dump(data, f, indent=2)
-                        print(f"Lesson with ID {id_num} is being deleted...")
+                    write_json(file_path, data)
+                    print(f"Lesson with ID {id_num} is being deleted...")
 
         existing_ids = []
 
@@ -249,19 +172,19 @@ class Editor(QMainWindow):
                 existing_ids.append(id_num)
 
         try:
-            if int(id_input) not in existing_ids:
+            if int(self.id_input) not in existing_ids:
                 self.status.setText(
-                    f"✅ Lesson with ID {id_input} has been successfully deleted!"
+                    f"✅ Lesson with ID {self.id_input} has been successfully deleted!"
                 )
             else:
                 self.status.setText(
-                    f"❌ Lesson with ID {id_input} is unable to be removed!"
+                    f"❌ Lesson with ID {self.id_input} is unable to be removed!"
                 )
 
         except Exception as e:
             log_error(e)
 
-    def _initui(self):
+    def initui(self):
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout()
@@ -323,17 +246,17 @@ class Editor(QMainWindow):
                 """
         )
 
-        create.clicked.connect(self._initui_lesson)
-        edit.clicked.connect(self._init_edit_prompt)
-        delete.clicked.connect(self._init_del_menu)
-        settings.clicked.connect(self._init_settings)
-        list_l.clicked.connect(self._list_lessons_ui)
-        lesson_info.clicked.connect(self._lesson_info_ui_dialog)
+        create.clicked.connect(self.initui_lesson)
+        edit.clicked.connect(self.init_edit_prompt)
+        delete.clicked.connect(self.init_del_menu)
+        settings.clicked.connect(self.init_settings)
+        list_l.clicked.connect(self.list_lessons_ui)
+        lesson_info.clicked.connect(self.lesson_info_ui_dialog)
 
         central.setLayout(layout)
 
-    def _lesson_info_ui_dialog(self):
-        def _get_data():
+    def lesson_info_ui_dialog(self):
+        def get_data():
             lesson_id = self.lesson_id_box.text()
             if len(lesson_id) != 0:
                 try:
@@ -343,7 +266,7 @@ class Editor(QMainWindow):
                     log_error(ve)
                     return
 
-                data = self.find_lesson(lesson_id)
+                data = find_lesson(lesson_id)
                 if data is not None:
                     self.list_lesson_ui(data)
 
@@ -405,8 +328,8 @@ class Editor(QMainWindow):
 
         central.setLayout(layout)
 
-        submit.clicked.connect(_get_data)
-        go_back.clicked.connect(self._initui)
+        submit.clicked.connect(get_data)
+        go_back.clicked.connect(self.initui)
 
     def list_lesson_ui(self, data):
         central = QWidget()
@@ -481,14 +404,14 @@ class Editor(QMainWindow):
 
         central.setLayout(layout)
 
-        go_back.clicked.connect(self._initui)
+        go_back.clicked.connect(self.initui)
 
-    def _list_lessons_ui(self):
+    def list_lessons_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout()
 
-        data = self.list_lessons()
+        data = list_lessons()
 
         title = QLabel("PyEducate: Lesson List", self)
         lessons = QLabel(self)
@@ -532,9 +455,9 @@ class Editor(QMainWindow):
         )
 
         central.setLayout(layout)
-        go_back.clicked.connect(self._initui)
+        go_back.clicked.connect(self.initui)
 
-    def _initui_lesson(self):
+    def initui_lesson(self):
         def add_json():
             all_texts = (
                 self.title_name,
@@ -661,19 +584,18 @@ class Editor(QMainWindow):
                         """
         )
 
-        go_back_del.clicked.connect(self._initui)
+        go_back_del.clicked.connect(self.initui)
         submit_data.clicked.connect(add_json)
 
         central.setLayout(layout)
 
-    def _init_edit_prompt(self):
+    def init_edit_prompt(self):
         file_path = join(get_appdata_path(), "lessons.json")
 
         def _submit():
             is_valid_id = False
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    data = load(f)
+                data = load_json(file_path)
 
                 for lesson in data["lessons"]:
                     if str(lesson["id"]) == str(self.id_name.text()):
@@ -685,7 +607,7 @@ class Editor(QMainWindow):
                 return
 
             if is_valid_id:
-                self._init_edit_menu(self.id_name.text())
+                self.init_edit_menu(self.id_name.text())
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -742,16 +664,14 @@ class Editor(QMainWindow):
         )
 
         submit_data.clicked.connect(_submit)
-        go_back_edit.clicked.connect(self._initui)
+        go_back_edit.clicked.connect(self.initui)
         central.setLayout(layout)
 
-    def _edit_file(self):
+    def edit_file(self):
         self.del_json()
         self.create_json()
 
-    def _init_edit_menu(self, id_n="0"):
-        print(id_n)
-        print(type(id_n))
+    def init_edit_menu(self, id_n="0"):
         self.id_input = id_n
 
         text = self.edit_json(id_n)
@@ -851,12 +771,12 @@ class Editor(QMainWindow):
                                 """
         )
 
-        go_back_edit.clicked.connect(self._initui)
-        submit_data.clicked.connect(self._edit_file)
+        go_back_edit.clicked.connect(self.initui)
+        submit_data.clicked.connect(self.edit_file)
 
         central.setLayout(layout)
 
-    def _init_del_menu(self):
+    def init_del_menu(self):
         def _submit():
             self.id_input = self.id_input_data.text()
             self.del_json()
@@ -873,7 +793,7 @@ class Editor(QMainWindow):
         go_back_del = QPushButton("Main Menu")
 
         delete_button.clicked.connect(_submit)
-        go_back_del.clicked.connect(self._initui)
+        go_back_del.clicked.connect(self.initui)
 
         title.setObjectName("title")
 
@@ -921,7 +841,7 @@ class Editor(QMainWindow):
 
         central.setLayout(layout)
 
-    def _init_settings(self):
+    def init_settings(self):
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout()
@@ -938,7 +858,7 @@ class Editor(QMainWindow):
         layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(file_save)
         layout.addWidget(go_back)
-        go_back.clicked.connect(self._initui)
+        go_back.clicked.connect(self.initui)
 
         self.setStyleSheet(
             """
