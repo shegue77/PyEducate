@@ -4,6 +4,7 @@ from utils.client.paths import get_appdata_path
 from utils.client.logger import log_error
 from utils.crypto import decrypt_file, encrypt_file
 
+
 # After download, the downloaded lesson gets sent here to be added to the JSON file containing locally-stored lessons.
 def _get_json_file(new_lessons):
     file_path = join(get_appdata_path(), "lessons.json")
@@ -55,7 +56,7 @@ def download_file(client_r, mode, end_marker):
     file_bytes = b""
 
     while True:
-        if file_bytes[-len(end_marker):] == bytes(end_marker):
+        if file_bytes[-len(end_marker) :] == bytes(end_marker):
             file_bytes = file_bytes[:-34]
             break
 

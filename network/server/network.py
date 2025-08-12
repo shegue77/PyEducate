@@ -1,5 +1,6 @@
 import socket
 
+
 def get_local_ip_address(ip_type):
     server_ip = ""
     if ip_type.strip() == "ipv6":
@@ -20,6 +21,7 @@ def get_local_ip_address(ip_type):
         server_ip = socket.gethostbyname(socket.gethostname())
 
     return server_ip
+
 
 def validate_ip(ip_address):
     ip_address = ip_address.strip().split(".")
