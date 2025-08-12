@@ -1,139 +1,89 @@
 # 🎓 PyEducate
 
-**PyEducate** is a dynamic and powerful **educational application** built with Python.  
-Leveraging **socket programming** and **PySide6**, it delivers an engaging, **🎮 gamified learning experience** designed to make education more interactive and fun.
+**PyEducate** is a dynamic, socket-powered **Python educational app** with a sleek **PySide6 GUI**, built for **engaging offline, gamified learning** over local networks.
 
 ---
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Offline_Mode-Enabled-brightgreen?style=for-the-badge&logo=wifi" alt="Offline Mode">
-  <img src="https://img.shields.io/badge/Network-Socket_Based-blue?style=for-the-badge&logo=python" alt="Socket Based">
-  <img src="https://img.shields.io/badge/Learning-Gamified-ff69b4?style=for-the-badge&logo=star" alt="Gamified Learning">
-  <img src="https://img.shields.io/badge/GUI-PySide6-6f42c1?style=for-the-badge&logo=qt" alt="GUI Interface">
-  <a href="https://github.com/shegue77/PyEducate/blob/master/LICENSE">
-    <img src="https://img.shields.io/badge/license-GPLv3-6f42c1?style=for-the-badge&logo=github" alt="License">
-  </a>
+  <img src="https://img.shields.io/badge/Offline_Mode-Enabled-brightgreen?style=for-the-badge&logo=wifi">
+  <img src="https://img.shields.io/badge/Socket-Based-Networking-blue?style=for-the-badge&logo=python">
+  <img src="https://img.shields.io/badge/Gamified-Learning-ff69b4?style=for-the-badge&logo=star">
+  <img src="https://img.shields.io/badge/GUI-PySide6-6f42c1?style=for-the-badge&logo=qt">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPLv3-6f42c1?style=for-the-badge&logo=github"></a>
 </p>
 
 ---
 
-## 🛡️ Supports:
+## ✨ Highlights
 
-- ✅ Offline Mode
-- ✅ Suite of server commands 🌐
-- ✅ One-to-one file transfers 📁
-- ✅ Graphical User Interface 💻
-- ✅ Auto-connect to server 🔄️
-- ✅ Leaderboards 🏆
----
-
-## 🎯 Features
-
-- 📤 **Server Program**  
-  - Send lessons (JSON format)
-  - Configurable port
-  - Safe mode
-
-
-- ✏️ **Lesson Editor**
-    - Easy-to-navigate GUI
-    - Create & delete lessons
-    - Edit lessons
-    - View available lessons
-
-
-- 📥 **Client Program**
-  - Set listening port & IP
-  - User-friendly interface
-  - Easy access to lessons (stored locally)
-  - Automatically connects to the server
-  - Leaderboard with others connected to the same server
+- Design and manage lessons with **Lesson Editor**
+- Share content seamlessly via **Server → Client** over local network
+- Enjoy **leaderboards**, **offline mode**, and a clean GUI
+- No internet connection required  
+[📚 Learn more about how it works →](https://github.com/shegue77/PyEducate/wiki)
 
 ---
 
-## ❔ Why use PyEducate?
-#### Check out the [wiki](https://github.com/shegue77/PyEducate/wiki) to learn more about PyEducate.
-
-## ❓How it works
-- **Host** uses the **lesson editor** to create lessons, saved in JSON format; sorted by ID.
-- **Host** uses the **server program** which contains a suite of commands used to send & receive data.
-- **Client** connects to **server** via the **server program**.
-- Lessons are sent **remotely** through the **server program** to the **client**.
+> ⚠️ **IMPORTANT NOTICE**
+> 
+> There may be some breaking changes on the `main` branch. Please keep yourself updated and look out for more information.
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Installation
 
-### ✅ Requirements
-- Python 3.9+
-- 💻 Windows Device
+---
+
+## ✅ Requirements
+- Python 3.9.2+
+- 💻 Windows OS (Cross-platform has not been tested yet)
 - 🚫 No internet connection required (runs on the local network)
 
-### 🔧 Installation
-
-###### Download a **[released](https://github.com/shegue77/PyEducate/releases)** version
-
-###### OR
-
-###### 1. Clone the repo:
-    git clone https://github.com/shegue77/PyEducate.git
-    cd PyEducate
-
-###### 2. Install dependencies:
-    pip install -r requirements.txt
-
-###### 3. Run the lesson editor:
-    python lesson-editor.py
-
-###### 4. Run the server:
-    python server.py
-
-###### 5. Run the client:
-    python client.py
-
 ---
 
-### 📦 Packaging (Optional)
-###### You can convert the files into an .exe using the following:
-``` bash
-pip install pyinstaller
-pyinstaller --onedir [file_path]
-```
-
-###### Alternatively, use this script to automatically convert all files to .exe:
-``` bash
-pip install pyinstaller
-python package-all.py
-```
-
----
-
-## Contributing
-We welcome contributions to PyEducate! Whether you're fixing bugs, adding features, or improving documentation, we appreciate your help.
-
-``` bash
+## ✏️ Steps
+```bash
 git clone https://github.com/shegue77/PyEducate.git
 cd PyEducate
 
-pip install -r requirements.txt # Install dependencies
+# Install dependencies
+pip install -r requirements.txt
 ```
 
+```bash
+# Run lesson editor
+python lesson-editor.py
+```
 
-For detailed contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
+```bash
+# Run server
+python server.py
+```
+
+```bash
+# Run client
+python client.py
+```
+
+---
+
+## 📚 Learn More
+- [PyEducate Wiki](https://github.com/shegue77/PyEducate/wiki)
+- [Installation & Setup](https://github.com/shegue77/PyEducate/wiki/Installation)
+- [Step-by-Step Usage](https://github.com/shegue77/PyEducate/wiki/Getting-Started)
+- [Frequently Asked Questions](https://github.com/shegue77/PyEducate/wiki/FAQ)
+- [Demo Videos](https://github.com/shegue77/PyEducate/wiki/Demos)
+- [Future Roadmap](https://github.com/shegue77/PyEducate/wiki/Roadmap)
 
 ---
 
-## 📸 Screenshots
+## 📸 Preview
 
-> ![Server](assets/server.png)
+🎥 **[Watch Demo Video](https://youtu.be/-hf7UFrB3TM?si=wbkTFS1_gvcC7xMe)**
 
-> ![Lesson Editor](assets/lesson-editor.png)
-
-### Full Demo [Here](https://youtu.be/-hf7UFrB3TM?si=KDYq3QeLKzNqcTJG)
+🪟 **[View all demos & screenshots](https://github.com/shegue77/PyEducate/wiki/Screenshots)**
 
 ---
 
-### 📢 License
-GPL License – See **[LICENSE](LICENSE)** file for more information.
-
----
+## 📜 License
+Licensed under GPLv3 - see the **[LICENSE](LICENSE)** file for details.
