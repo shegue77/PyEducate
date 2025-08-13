@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Offline_Mode-Enabled-brightgreen?style=for-the-badge&logo=wifi">
-  <img src="https://img.shields.io/badge/Socket-Based-Networking-blue?style=for-the-badge&logo=python">
+  <img src="https://img.shields.io/badge/Network-Socket_Based-blue?style=for-the-badge&logo=python" alt="Socket Based">
   <img src="https://img.shields.io/badge/Gamified-Learning-ff69b4?style=for-the-badge&logo=star">
   <img src="https://img.shields.io/badge/GUI-PySide6-6f42c1?style=for-the-badge&logo=qt">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPLv3-6f42c1?style=for-the-badge&logo=github"></a>
