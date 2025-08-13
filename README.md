@@ -70,7 +70,7 @@ python client.py
 ## 📚 Learn More
 - [PyEducate Wiki](https://github.com/shegue77/PyEducate/wiki)
 - [Installation & Setup](https://github.com/shegue77/PyEducate/wiki/Installation)
-- [Step-by-Step Usage](https://github.com/shegue77/PyEducate/wiki/Getting-Started)
+- [Contributing](https://github.com/shegue77/PyEducate/wiki/Contributing)
 - [Frequently Asked Questions](https://github.com/shegue77/PyEducate/wiki/FAQ)
 - [Demo Videos](https://github.com/shegue77/PyEducate/wiki/Demos)
 - [Future Roadmap](https://github.com/shegue77/PyEducate/wiki/Roadmap)

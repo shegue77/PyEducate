@@ -30,6 +30,10 @@ Expanding functionality, customization, and security.
 - [ ] Enhanced editor tools for hosts to create/manage lessons locally
 - [ ] Packaging/distribution options for deploying on multiple machines
 
+### ⚙️ Functionality
+- [ ] Embed python interpreter into lessons (if applicable)
+- [ ] Expand lesson types
+
 ### 🔐 Security Enhancements
 - [ ] Implement socket encryption for secure communication
 - [ ] Add secure import/export of lesson data
