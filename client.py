@@ -12,7 +12,7 @@ from datetime import datetime
 from network.client import connectmod
 from utils.client.paths import get_appdata_path
 from utils.crypto import encrypt_file, decrypt_file
-from utils.client.storage import find_lesson, mark_lesson_finish
+from utils.client.storage import find_lesson, mark_lesson_finish, write_json, load_json
 
 from PySide6.QtWidgets import (
     QApplication,
@@ -211,27 +211,22 @@ class MainWindow(QMainWindow):
     def reload_json(self):
         file_path = join(get_appdata_path(), "lessons.json")
         try:
-            with open(file_path, "rb") as file:
-                self.data = loads(decrypt_file(file.read()))
-                print("reloaded lessons.json")
+            self.data = load_json(file_path)
+            print("reloaded lessons.json")
 
         except FileNotFoundError as fe:
             log_error(fe)
             print(fe)
             print()
             makedirs(join(get_appdata_path(), "images"), exist_ok=True)
-            with open(file_path, "wb") as file:
-                write_data = {"lessons": []}
-                write_data = dumps(write_data)
-                file.write(encrypt_file(write_data))
-                print("reloaded")
+            write_data = {"lessons": []}
+            write_json(file_path, write_data)
+            print("reloaded")
 
         except JSONDecodeError:
-            with open(file_path, "wb") as file:
-                write_data = {"lessons": []}
-                write_data = dumps(write_data)
-                file.write(encrypt_file(write_data))
-                print("reloaded")
+            write_data = {"lessons": []}
+            write_json(file_path, write_data)
+            print("reloaded")
 
     def submit_id_data(self, id_n):
 
@@ -244,25 +239,18 @@ class MainWindow(QMainWindow):
                 break
 
             try:
-                with open(file_path, "rb") as file:
-                    self.data = loads(decrypt_file(file.read()))
-                    print("reloaded")
+                self.data = load_json(file_path)
 
             except FileNotFoundError as fe:
                 log_error(fe)
                 print(fe)
                 print()
                 makedirs(join(get_appdata_path(), "images"), exist_ok=True)
-                if not os_path_exists(file_path):
-                    with open(file_path, "wb") as file:
-                        write_data = {"lessons": []}
-                        write_data = dumps(write_data)
-                        file.write(encrypt_file(write_data))
+                write_data = {"lessons": []}
+                write_json(file_path, write_data)
 
             except Exception as e:
-                with open(file_path, "rb") as file:
-                    self.data = loads(decrypt_file(file.read()))
-                    print("reloaded")
+                self.data = load_json(file_path)
                 print(e)
                 break
 
@@ -334,14 +322,11 @@ class MainWindow(QMainWindow):
         file_path = join(get_appdata_path(), "lessons.json")
 
         def create_json():
-            with open(file_path, "wb") as f:
-                write_data = {"lessons": []}
-                write_data = dumps(write_data)
-                f.write(encrypt_file(write_data))
+            data = {"lessons": []}
+            write_json(file_path, data)
 
         try:
-            with open(file_path, "rb") as f:
-                data = loads(decrypt_file(f.read()))
+            data = load_json(file_path)
 
         except FileNotFoundError as fe:
             log_error(fe)
@@ -351,10 +336,8 @@ class MainWindow(QMainWindow):
             return 1
 
         except JSONDecodeError:
-            with open(file_path, "wb") as f:
-                write_data = {"lessons": []}
-                write_data = dumps(write_data)
-                f.write(encrypt_file(write_data))
+            data = {"lessons": []}
+            write_json(file_path, data)
 
         whole_data = []
         pages = (len(data["lessons"]) + 8 - 1) // 8
@@ -1252,8 +1235,7 @@ class MainWindow(QMainWindow):
 
             file_path = join(get_appdata_path(), "lessons.json")
 
-            with open(file_path, "rb") as file:
-                data = loads(decrypt_file(file.read()))
+            data = load_json(file_path)
 
             for idx, lsn in enumerate(data["lessons"]):
                 if int(lsn["id"]) == id_l:
