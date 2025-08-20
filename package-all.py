@@ -9,7 +9,7 @@ lesson_edit_path = join("server", "lesson-editor.py")
 server_path = join("server", "server.py")
 client_path = join("e/client", "client.py")
 print(system(f"pyinstaller --onedir --windowed {lesson_edit_path}"))
-print(system(f"pyinstaller --onefile {server_path}"))
+print(system(f"pyinstaller --onedir {server_path}"))
 print(system(f"pyinstaller --onedir --windowed {client_path}"))
 
 for part in dist_parts:

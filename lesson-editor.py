@@ -51,40 +51,51 @@ class Editor(QMainWindow):
         self.setContentsMargins(40, 40, 40, 40)
         self.initui()
 
-    def create_json(self):
+    @staticmethod
+    def create_json(id_input, all_texts):
         file_path = join(get_appdata_path(), "lessons.json")
 
-        title = str(self.title_name.text())
-        mild_desc = str(self.description_text.text())
-        image = str(self.image_path.text())
-        content = str(self.content_text.toPlainText().replace("\n", "\\n"))
-        question = str(self.quiz_question_text.text())
-        answer = str(self.quiz_answer_text.toPlainText().replace("\n", "\\n"))
-        points = str(self.point_amount.text())
+        title = all_texts[0].text()
+        mild_desc = str(all_texts[1].text())
+        points = str(all_texts[2].text())
+        content = str(all_texts[3].toPlainText().replace("\n", "\\n"))
+        question = str(all_texts[4].text())
+        answer = str(all_texts[5].toPlainText().replace("\n", "\\n"))
+        try:
+            image = str(all_texts[6].text())
+        except IndexError:
+            image = ""
 
         quiz = [{"question": question, "answer": answer}]
 
-        def read_lesson():
+        def read_lesson(id_input):
             lesson_path = join(get_appdata_path(), "lessons.json")
 
             try:
                 json_data = load_json(lesson_path)
+                print(json_data)
 
             except FileNotFoundError as fe:
                 log_error(fe)
-                return
+                return True
 
             for lesson in json_data["lessons"]:
-                if str(lesson["id"]) == str(self.id_input):
-                    self.id_input += 1
-                    read_lesson()
-                    return
+                if str(lesson["id"]) == str(id_input):
+                    return False
 
-        read_lesson()
+            return True
+
+        while True:
+            response = read_lesson(id_input)
+            print(id_input)
+            if response:
+                break
+            else:
+                id_input += 1
 
         new_lesson = dumps(
             {
-                "id": str(self.id_input),
+                "id": str(id_input),
                 "title": title,
                 "description": mild_desc,
                 "image": image,
@@ -114,9 +125,10 @@ class Editor(QMainWindow):
 
         # Save back to file
         write_json(file_path, data)
-        self.initui()
+        return id_input
 
-    def edit_json(self, id_n):
+    @staticmethod
+    def edit_json(id_n):
         file_path = join(get_appdata_path(), "lessons.json")
         data = load_json(file_path)
 
@@ -462,7 +474,6 @@ class Editor(QMainWindow):
             all_texts = (
                 self.title_name,
                 self.description_text,
-                self.image_path,
                 self.point_amount,
                 self.content_text,
                 self.quiz_question_text,
@@ -487,7 +498,8 @@ class Editor(QMainWindow):
                 except AttributeError:
                     part.setPlainText(str(part.toPlainText()).replace('"', "'"))
 
-            self.create_json()
+            self.id_input = self.create_json(self.id_input, all_texts)
+            self.initui()
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -669,7 +681,17 @@ class Editor(QMainWindow):
 
     def edit_file(self):
         self.del_json()
-        self.create_json()
+        all_texts = (
+            self.title_name,
+            self.description_text,
+            self.point_amount,
+            self.content_text,
+            self.quiz_question_text,
+            self.quiz_answer_text,
+            self.image_path,
+        )
+        self.id_input = self.create_json(self.id_input, all_texts)
+        self.initui()
 
     def init_edit_menu(self, id_n="0"):
         self.id_input = id_n

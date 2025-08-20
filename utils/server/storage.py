@@ -9,6 +9,141 @@ from .logger import log_error
 _safe_leaderboard = Lock()
 
 
+def lesson_req_checks(all_texts):
+    title = all_texts[0].text()
+    mild_desc = str(all_texts[1].text())
+    content = str(all_texts[3].toPlainText())
+    question = str(all_texts[4].text())
+    answer = str(all_texts[5].toPlainText())
+
+    required_texts = (title, mild_desc, content, question, answer)
+
+    for text in required_texts:
+        if text.strip() == "":
+            return False
+
+    return True
+
+
+def get_username():
+    full_path = get_appdata_path()
+    with open(join(full_path, "save_data.dat"), "rb") as f:
+        username = decrypt_file(f.read())
+    return username
+
+
+def del_lesson(id_input):
+    file_path = join(get_appdata_path(), "lessons.json")
+
+    data = load_json(file_path)
+
+    for lesson in data["lessons"]:
+        for id_num in str(lesson["id"]):
+            if id_num == str(id_input):
+                data["lessons"].remove(lesson)
+                write_json(file_path, data)
+                print(f"Lesson with ID {id_num} is being deleted...")
+
+    existing_ids = []
+
+    for lesson in data["lessons"]:
+        for id_num in str(lesson["id"]):
+            existing_ids.append(id_num)
+
+    try:
+        if int(id_input) not in existing_ids:
+            return True
+        else:
+            return False
+
+    except Exception as e:
+        log_error(e)
+
+    return False
+
+
+def create_json(id_input, all_texts):
+    file_path = join(get_appdata_path(), "lessons.json")
+
+    did_pass = lesson_req_checks(all_texts)
+
+    if not did_pass:
+        print("Not all required fields have been filled out!")
+        return "Halt"
+
+    title = all_texts[0].text()
+    mild_desc = str(all_texts[1].text())
+    points = str(all_texts[2].text())
+    content = str(all_texts[3].toPlainText())
+    question = str(all_texts[4].text())
+    answer = str(all_texts[5].toPlainText())
+    try:
+        image = str(all_texts[6].text())
+    except IndexError:
+        image = ""
+
+    quiz = [{"question": question, "answer": answer}]
+
+    def read_lesson(id_input):
+        lesson_path = join(get_appdata_path(), "lessons.json")
+
+        try:
+            json_data = load_json(lesson_path)
+            print(json_data)
+
+        except FileNotFoundError as fe:
+            log_error(fe)
+            return True
+
+        for lesson in json_data["lessons"]:
+            if str(lesson["id"]) == str(id_input):
+                return False
+
+        return True
+
+    while True:
+        response = read_lesson(id_input)
+        print(id_input)
+        if response:
+            break
+        else:
+            id_input += 1
+
+    new_lesson = dumps(
+        {
+            "id": str(id_input),
+            "title": title,
+            "description": mild_desc,
+            "image": image,
+            "content": content,
+            "points": points,
+            "quiz": quiz,
+        }
+    )
+
+    try:
+        new_lesson = loads(new_lesson)
+        print("✅ JSON is valid")
+    except JSONDecodeError as e:
+        print("❌ Invalid JSON:", e)
+        log_error(e)
+        return
+
+    # Load from file
+    try:
+        data = load_json(file_path)
+
+    except FileNotFoundError:
+        data = {"lessons": []}
+
+    # Modify (e.g., add a lesson)
+    data["lessons"].append(new_lesson)
+
+    # Save back to file
+    write_json(file_path, data)
+    return id_input
+
+
 def write_json(file_path, data):
     with open(file_path, "wb") as f:
         data = dumps(data)
@@ -21,11 +156,22 @@ def load_json(file_path):
     return data
 
 
+def write_save_data(host, port, ip_type, username_setting):
+    full_path = get_appdata_path()
+    with open(join(full_path, "connect-data.txt"), "wb") as f:
+        data = f"{port}\n{ip_type}\n{host}"
+        data = encrypt_file(data)
+        f.write(data)
+
+    with open(join(full_path, "save_data.dat"), "wb") as f:
+        data = encrypt_file(str(username_setting))
+        f.write(data)
+
+
 def find_lesson(lesson_id):
     file_path = join(get_appdata_path(), "lessons.json")
 
-    with open(file_path, "rb") as f:
-        data = loads(decrypt_file(f.read()))
+    data = load_json(file_path)
 
     for lesson in data["lessons"]:
         try:
@@ -41,26 +187,28 @@ def find_lesson(lesson_id):
                         str(lesson["content"]),
                         str(quiz["question"]),
                         str(quiz["answer"]),
+                        str(lesson["points"]),
                     )
         except Exception as e:
             log_error(e)
             return None
 
 
-def list_lessons():
+def list_lessons(error_message: str = "No lessons found!"):
     file_path = join(get_appdata_path(), "lessons.json")
     try:
-        with open(file_path, "rb") as f:
-            data = loads(decrypt_file(f.read()))
+        data = load_json(file_path)
 
     except FileNotFoundError:
-        with open(file_path, "wb") as f:
-            data = {"lessons": []}
-            f.write(encrypt_file(dumps(data)))
+        data = {"lessons": []}
+        write_json(file_path, data)
 
     whole_data = ""
-    for lesson in data["lessons"]:
-        whole_data += f'Title: {lesson["title"]} | ID: {lesson["id"]}\n'
+    if data["lessons"]:
+        for lesson in data["lessons"]:
+            whole_data += f'Title: {lesson["title"]} | ID: {lesson["id"]}\n'
+    else:
+        whole_data = error_message
 
     return whole_data
 

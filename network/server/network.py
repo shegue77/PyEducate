@@ -1,4 +1,8 @@
 import socket
+from os.path import join
+from utils.crypto import decrypt_file
+from utils.server.logger import log_error
+from utils.server.paths import get_appdata_path
 
 
 def get_local_ip_address(ip_type):
@@ -44,3 +48,18 @@ def validate_ip(ip_address):
         valid_ip = True
 
     return valid_ip
+
+
+def get_server_data():
+    full_path = get_appdata_path()
+    with open(join(full_path, "connect-data.txt"), "rb") as f:
+        data = decrypt_file(f.read()).strip().splitlines()
+        server_port = data[0]
+        ip_type = data[1]
+        try:
+            server_ip = data[2]
+        except IndexError as ie:
+            log_error(ie)
+            server_ip = get_local_ip_address(ip_type)
+
+    return server_ip, server_port, ip_type

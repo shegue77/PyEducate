@@ -1,39 +1,50 @@
 from datetime import datetime
 from threading import Lock
 from os.path import join
-from json import loads, dumps, JSONDecodeError
+from json import JSONDecodeError
 from .logger import log_error
 from .paths import get_appdata_path
 from .help import show_version, show_license
-from utils.crypto import decrypt_file, encrypt_file
+from utils.server.storage import load_json, write_json
 
 _safe_banned_users = Lock()
 
 
-def ban_user(command):
-    try:
-        ip_address = command.split(" ")[1]
-    except IndexError:
-        print("[!] IP address not specified!\nUnable to ban user!")
-        return None
-    try:
-        reason = command.split(" ")[2]
-    except Exception:
-        reason = "Unknown"
-    try:
-        severity = command.split(" ")[3]
-    except Exception:
-        severity = "Unknown"
-    try:
-        end_date = command.split(" ")[4]
-    except Exception:
+def ban_user(command, is_gui: bool = False):
+    if not is_gui:
+        try:
+            ip_address = command.split(" ")[1]
+        except IndexError:
+            print("[!] IP address not specified!\nUnable to ban user!")
+            return "[!] IP address not specified!\nUnable to ban user!"
+        try:
+            reason = command.split(" ")[2]
+        except Exception:
+            reason = "Unknown"
+        try:
+            severity = command.split(" ")[3]
+        except Exception:
+            severity = "Unknown"
+        try:
+            end_date = command.split(" ")[4]
+        except Exception:
+            end_date = "Indefinite"
+
+    else:
+        for idx, part in enumerate(command):
+            if idx != 0:
+                if str(part).strip() == "":
+                    command[idx] = "Unknown"
+
+        ip_address = command[0]
+        reason = command[1]
+        severity = command[2]
         end_date = "Indefinite"
 
     file_path = str(join(get_appdata_path(), "banned-users.json"))
     try:
         with _safe_banned_users:
-            with open(file_path, "rb") as f:
-                json_data = loads(decrypt_file(f.read()))
+            json_data = load_json(file_path)
 
     except FileNotFoundError:
         json_data = {"banned_ips": {}}
@@ -49,26 +60,27 @@ def ban_user(command):
 
     now = datetime.now()
     timestamp = now.strftime("%d-%m-%Y%H:%M:%S")
-    new_ban = loads(
-        '{"timestamp": '
-        + f'"{timestamp}", '
-        + f'"reason": "{reason}", '
-        + f'"severity": "{severity}", '
-        + f'"end_date": "{end_date}"'
-        + "}"
-    )
+    new_ban = {
+        "timestamp": timestamp,
+        "reason": reason,
+        "severity": severity,
+        "end_date": end_date,
+    }
 
     json_data["banned_ips"][ip_address] = new_ban
 
     with _safe_banned_users:
-        with open(file_path, "wb") as file:
-            json_data = dumps(json_data)
-            file.write(encrypt_file(json_data))
+        write_json(file_path, json_data)
 
     print(
         f"{ip_address} has been banned!\n"
         f"Run !disconnect to cut all"
         f" connections with {ip_address}."
+    )
+    return (
+        f"{ip_address} has been banned!\n"
+        + f"Run !disconnect to cut all"
+        + f" connections with {ip_address}."
     )
 
 
@@ -77,40 +89,33 @@ def unban_user(ip_address):
 
     try:
         with _safe_banned_users:
-            with open(file_path, "rb") as f:
-                data = loads(decrypt_file(f.read()))
+            data = load_json(file_path)
 
     except FileNotFoundError as fe:
         print("[*] Ban list not found.")
         with _safe_banned_users:
-            with open(file_path, "wb") as file:
-                json_data = {"banned_ips": {}}
-                json_data = dumps(json_data)
-                file.write(encrypt_file(json_data))
+            json_data = {"banned_ips": {}}
+            write_json(file_path, json_data)
 
         log_error(fe)
-        return
+        return "[!] Error"
 
     except JSONDecodeError as je:
         with _safe_banned_users:
-            with open(file_path, "wb") as file:
-                json_data = {"banned_ips": {}}
-                json_data = dumps(json_data)
-                file.write(encrypt_file(json_data))
+            json_data = {"banned_ips": {}}
+            write_json(file_path, json_data)
         log_error(je)
-        return
+        return "[!] Error"
 
     if ip_address in data["banned_ips"]:
         del data["banned_ips"][ip_address]
 
         with _safe_banned_users:
-            with open(file_path, "wb") as file:
-                data = dumps(data)
-                file.write(encrypt_file(data))
+            write_json(file_path, data)
 
-        print(f"[*] Unbanned {ip_address}")
+        return f"[*] Unbanned {ip_address}"
     else:
-        print(f"[!] IP address {ip_address} not found in ban list.")
+        return f"[!] IP address {ip_address} not found in ban list."
 
 
 def check_if_banned(ip_address):
@@ -118,27 +123,24 @@ def check_if_banned(ip_address):
 
     try:
         with _safe_banned_users:
-            with open(file_path, "rb") as f:
-                json_data = loads(decrypt_file(f.read()))
+            json_data = load_json(file_path)
+        print(json_data)
 
     except FileNotFoundError:
         print("[*] Ban list not found.")
         with _safe_banned_users:
-            with open(file_path, "wb") as file:
-                json_data = {"banned_ips": {}}
-                json_data = dumps(json_data)
-                file.write(encrypt_file(json_data))
+            json_data = {"banned_ips": {}}
+            write_json(file_path, json_data)
         return False
 
     except JSONDecodeError:
         with _safe_banned_users:
-            with open(file_path, "wb") as file:
-                json_data = {"banned_ips": {}}
-                json_data = dumps(json_data)
-                file.write(encrypt_file(json_data))
+            json_data = {"banned_ips": {}}
+            write_json(file_path, json_data)
         return False
+    print(bool(ip_address[0] in json_data["banned_ips"].keys()))
 
-    return bool(ip_address in json_data["banned_ips"].keys())
+    return bool(ip_address[0] in json_data["banned_ips"].keys())
 
 
 def list_banned():
@@ -146,8 +148,7 @@ def list_banned():
     banned_ip_data = "\nBanned IP addresses:\n\n"
 
     try:
-        with open(file_path, "rb") as f:
-            json_data = loads(decrypt_file(f.read()))
+        json_data = load_json(file_path)
 
     except FileNotFoundError:
         json_data = {"banned_ips": {}}
@@ -155,7 +156,7 @@ def list_banned():
         json_data = {"banned_ips": {}}
 
     for part in json_data["banned_ips"]:
-        banned_ip_data += f"IP: " f"{part}:\n"
+        banned_ip_data += f"IP: " f"{part}\n"
         banned_ip_data += f"Reason: " f'{json_data["banned_ips"][part]["reason"]}\n'
         banned_ip_data += f"Severity: " f'{json_data["banned_ips"][part]["severity"]}\n'
         banned_ip_data += (

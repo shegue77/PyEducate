@@ -6,6 +6,18 @@ from .logger import log_error
 from utils.crypto import decrypt_file, encrypt_file
 
 
+def write_json(file_path, data):
+    with open(file_path, "wb") as f:
+        data = dumps(data)
+        f.write(encrypt_file(data))
+
+
+def load_json(file_path):
+    with open(file_path, "rb") as f:
+        data = loads(decrypt_file(f.read()))
+    return data
+
+
 def mark_lesson_finish(lesson_id):
     file_path = join(get_appdata_path(), "lessons.json")
     try:
@@ -41,26 +53,21 @@ def find_lesson(lesson_id):
     file_path = join(get_appdata_path(), "lessons.json")
 
     try:
-        with open(file_path, "rb") as file:
-            data = loads(decrypt_file(file.read()))
+        data = load_json(file_path)
 
     except FileNotFoundError as fe:
         log_error(fe)
         print()
         makedirs(join(get_appdata_path(), "images"), exist_ok=True)
-        with open(file_path, "wb") as file:
-            write_data = {"lessons": []}
-            write_data = dumps(write_data)
-            file.write(encrypt_file(write_data))
-            return None
+        write_data = {"lessons": []}
+        write_json(file_path, write_data)
+        return None
 
     except JSONDecodeError as je:
-        with open(file_path, "wb") as file:
-            write_data = {"lessons": []}
-            write_data = dumps(write_data)
-            file.write(encrypt_file(write_data))
-
         log_error(je)
+        write_data = {"lessons": []}
+        write_json(file_path, write_data)
+        return None
 
     for lesson in data["lessons"]:
         if int(lesson["id"]) == int(lesson_id):
