@@ -279,30 +279,27 @@ class MainWindow(QMainWindow):
                     write_data = dumps(write_data)
                     file.write(encrypt_file(write_data))
 
-    def get_lessons_for_page(self, page_number):
+    @staticmethod
+    def get_lessons_for_page(page_number):
         file_path = join(get_appdata_path(), "lessons.json")
         try:
-            with open(file_path, "rb") as file:
-                data = loads(decrypt_file(file.read()))
+            data = load_json(file_path)
 
         except FileNotFoundError as fe:
             log_error(fe)
             print(fe)
             print()
             makedirs(join(get_appdata_path(), "images"), exist_ok=True)
-            with open(file_path, "wb") as file:
-                write_data = {"lessons": []}
-                write_data = dumps(write_data)
-                file.write(encrypt_file(write_data))
+            write_data = {"lessons": []}
+            write_json(file_path, write_data)
             return []
 
         except JSONDecodeError as je:
             log_error(je)
 
-            with open(file_path, "wb") as file:
-                write_data = {"lessons": []}
-                write_data = dumps(write_data)
-                file.write(encrypt_file(write_data))
+            write_data = {"lessons": []}
+            write_json(file_path, write_data)
+            return []
 
         items_per_page = 8
         start_index = (page_number - 1) * items_per_page
@@ -318,7 +315,8 @@ class MainWindow(QMainWindow):
 
         return ids
 
-    def list_lesson_ids(self):
+    @staticmethod
+    def list_lesson_ids():
         file_path = join(get_appdata_path(), "lessons.json")
 
         def create_json():
@@ -463,7 +461,7 @@ class MainWindow(QMainWindow):
                         f"{data[1]}\n{data[3]}\nID: {data[0]}\nCompleted: {data[7]}"
                     )
 
-                except TypeError as te:
+                except IndexError as te:
                     log_error(te)
                     print(te)
                     return None
