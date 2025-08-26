@@ -3,14 +3,15 @@ from os.path import join
 from shutil import copy2, copytree
 
 stuff = ("LICENSE", "SOURCE")
-dist_parts = ("client", "server", "lesson-editor")
+dist_parts = ("client", "server", "server-cli")
 
-lesson_edit_path = join("server", "lesson-editor.py")
-server_path = join("server", "server.py")
-client_path = join("e/client", "client.py")
-print(system(f"pyinstaller --onedir --windowed {lesson_edit_path}"))
-print(system(f"pyinstaller --onedir {server_path}"))
-print(system(f"pyinstaller --onedir --windowed {client_path}"))
+server_cli = "server-cli.py"
+server_path = "server.py"
+client_path = "client.py"
+
+print(system(f"pyinstaller --windowed {server_path}"))
+print(system(f"pyinstaller {server_cli}"))
+print(system(f"pyinstaller --windowed {client_path}"))
 
 for part in dist_parts:
     for i in stuff:
