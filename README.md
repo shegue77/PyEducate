@@ -14,16 +14,6 @@
 
 ---
 
-## ✨ Highlights
-
-- Design and manage lessons with **Lesson Editor**
-- Share content seamlessly via **Server → Client** over local network
-- Enjoy **leaderboards**, **offline mode**, and a clean GUI
-- No internet connection required  
-[📚 Learn more about how it works →](https://github.com/shegue77/PyEducate/wiki)
-
----
-
 > ⚠️ **IMPORTANT NOTICE**
 > 
 > There may be some breaking changes on the `main` branch. Please keep yourself updated and look out for more information.
@@ -51,13 +41,13 @@ pip install -r requirements.txt
 ```
 
 ```bash
-# Run lesson editor
-python lesson-editor.py
+# Run server & editor
+python server.py
 ```
 
 ```bash
-# Run server
-python server.py
+# Run server CLI
+python server-cli.py
 ```
 
 ```bash
