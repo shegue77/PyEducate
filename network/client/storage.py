@@ -3,6 +3,7 @@ from os.path import join
 from utils.client.paths import get_appdata_path
 from utils.client.logger import log_error
 from utils.crypto import decrypt_file, encrypt_file
+from utils.client.storage import load_json, write_json
 
 
 # After download, the downloaded lesson gets sent here to be added to the JSON file containing locally-stored lessons.
@@ -10,8 +11,7 @@ def _get_json_file(new_lessons):
     file_path = join(get_appdata_path(), "lessons.json")
 
     try:
-        with open(file_path, "rb") as file:
-            data = loads(decrypt_file(file.read()))
+        data = load_json(file_path)
 
     except FileNotFoundError:
         data = {"lessons": []}
@@ -34,10 +34,7 @@ def _get_json_file(new_lessons):
         lesson["id"] = len(lessons) + 1
         lessons.append(lesson)
 
-    with open(file_path, "wb") as f:
-        data = dumps({"lessons": lessons})
-        f.write(encrypt_file(data))
-
+    write_json(file_path, data)
     print(f"✅ Added {len(new_lessons)} lessons.")
     return "SUCCESS"
 
@@ -61,7 +58,6 @@ def download_file(client_r, mode, end_marker):
             break
 
         print("Receiving data")
-        print(file_bytes)
         data = client_r.recv(1024)
 
         if file_bytes[-34:] == bytes(end_marker):
@@ -78,8 +74,6 @@ def download_file(client_r, mode, end_marker):
 
     ciphertext = open(file_path, "rb").read()
     lesson = decrypt_file(ciphertext)
-    print(lesson)
-    print(mode)
 
     if mode == "json":
         _get_json_file(lesson)
@@ -92,9 +86,4 @@ def download_file(client_r, mode, end_marker):
             print("❌ Invalid JSON string:", e)
             return None
 
-        with open(
-            str(join(get_appdata_path(), "leaderboards.json")),
-            "wb",
-        ) as f:
-            data = dumps(lesson)
-            f.write(encrypt_file(data))
+        write_json(join(get_appdata_path(), "leaderboards.json"), lesson)

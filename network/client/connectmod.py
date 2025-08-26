@@ -36,7 +36,6 @@ def start_client(server_ip, server_port, server_type="ipv4"):
     connected_to_server.set()
 
     while True:
-        print("e")
         command = client.recv(32).decode().strip().lower()
         print(f"[Received Command] {command}")
 
@@ -44,7 +43,6 @@ def start_client(server_ip, server_port, server_type="ipv4"):
             break
 
         if command == "!sendjson":
-            print("a")
             download_file(client, "json", END_MARKER)
 
         elif command == "!updateboard":
@@ -56,7 +54,6 @@ def start_client(server_ip, server_port, server_type="ipv4"):
                 client.sendall(response["ip"].encode())
 
             except Exception as e:
-                print(e)
                 log_error(e)
                 client.sendall("Error retrieving public IP address!".encode())
             continue
@@ -84,7 +81,7 @@ def start_client(server_ip, server_port, server_type="ipv4"):
             continue
 
         elif command == "!getstats":
-            stat_path = str(join(get_appdata_path(), "SAVE_DATA"))
+            stat_path = str(join(get_appdata_path(), "save_data.dat"))
             try:
                 with open(stat_path, "rb") as f:
                     data = decrypt_file(f.read()).strip().split()
