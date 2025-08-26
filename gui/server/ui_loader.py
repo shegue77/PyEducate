@@ -121,7 +121,11 @@ class MainWindow(QMainWindow):
             change_page(self, ui.lesson_editor, False)
 
         def _init_server():
-            server_ip, server_port, ip_type = get_server_data()
+            try:
+                server_ip, server_port, ip_type = get_server_data()
+            except TypeError as te:
+                log_error(te)
+                return
 
             start_server(server_ip, int(server_port), self, ip_type)
 
