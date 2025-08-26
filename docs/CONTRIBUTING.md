@@ -59,9 +59,7 @@ Before contributing code to PyEducate, you must sign our [Contributor License Ag
 
 ---
 
-## 1. Fork the repository (and star it ⭐)
-
-### 2. Setup Your Local Development Environment
+### 1. Setup Your Local Development Environment
 
 ```bash
 # Clone the repository
@@ -80,7 +78,7 @@ pip install -r requirements-dev.txt
 
 That's it! Your local development environment is ready.
 
-### 3. Development Workflow
+### 2. Development Workflow
 
 Here's the recommended workflow for making changes:
 

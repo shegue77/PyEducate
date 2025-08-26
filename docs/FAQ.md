@@ -39,20 +39,22 @@ A: Yes — a full GUI remake is planned for upcoming updates. See the [Roadmap](
 
 **Q: I get an error when starting the server. What should I do?**  
 A:  
-1. Ensure Python is installed and added to PATH.  
+1. Ensure Python is installed and added to PATH.
 2. Install all required dependencies (`pip install -r requirements.txt`).  
-3. Check logs (stored in `%APPDATA%` on Windows or your OS equivalent)
-4. Try run as administrator (assuming you have admin privileges)
+3. Check logs (stored in `%APPDATA%` on Windows or your OS equivalent).
+4. Try run as administrator (assuming you have admin privileges).
+5. See how to report issues & bugs **[here](CONTRIBUTING.md#reporting-bugs)**.
 
 **Q: The client doesn’t connect to the server.**  
 A:  
-- Make sure the server is running first.
-- Make sure you are **not** on mobile hotspot or a guest network.
-- Check that both are on the same local network.  
+- Make sure the server is running.
 - Verify the IP address and port are correctly configured.
-- Verify your firewall is correctly configured
-- Check logs (stored in `%APPDATA%` on Windows or your OS equivalent)
-- Try run as administrator (assuming you have admin privileges)
+- Make sure you are **not** on mobile hotspot or a guest network.
+- Check that both are on the same local network.
+- Verify your firewall is correctly configured.
+- Check logs (stored in `%APPDATA%` on Windows or your OS equivalent).
+- Try run as administrator (assuming you have admin privileges).
+- Report any bugs or issues See how to report issues & bugs **[here](CONTRIBUTING.md#reporting-bugs)**.
 
 ---
 

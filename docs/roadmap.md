@@ -1,24 +1,25 @@
 # 📌 PyEducate Roadmap
 
-Last updated: **13/08/2025**
+Last updated: **26/08/2025**
 
 ---
 
 ## 🗝️ Key
-- [ ] **Planned** – not started  
-- [x] **Completed** – finished and merged
+- [ ] **Planned** - not started  
+- [x] **Completed** - finished and merged
 
-🔄 **In Progress** – actively being worked on (add 🔄 before the item)  
+🔄 **In Progress** - actively being worked on
 
 ---
 
 ## 🚀 Short-Term (Upcoming Updates)
 Focused on usability, stability, and preparing the foundation for future features.
 
-- [ ] **Full GUI Remake** — modern, user-friendly navigation and layout
-- [ ] **Workflow Improvements** — smoother installation, server, and client start-up
-- [ ] **Codebase Refactor** — cleaner, more maintainable structure
-- [ ] **Bug Fixes** — address known issues in server, client, and editor
+- [x] **Full GUI Remake** - modern, user-friendly navigation and layout
+- [x] **Workflow Improvements** - smoother installation, server, and client start-up
+- [x] **Codebase Refactor** - cleaner, more maintainable structure
+- [x] **Bug Fixes** - address known issues in server, client, and editor
+- [x] **Merge Programs** - merge `server.py` and `client.py` into one application.
 
 ---
 
@@ -27,11 +28,10 @@ Expanding functionality, customization, and security.
 
 ### 🎨 User Experience
 - [ ] Customization options for the GUI (themes, layouts)
-- [ ] Enhanced editor tools for hosts to create/manage lessons locally
 - [ ] Packaging/distribution options for deploying on multiple machines
 
 ### ⚙️ Functionality
-- [ ] Embed python interpreter into lessons (if applicable)
+- [ ] Embed python interpreter into lessons
 - [ ] Expand lesson types
 
 ### 🔐 Security Enhancements
