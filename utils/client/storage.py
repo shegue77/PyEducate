@@ -18,26 +18,26 @@ def load_json(file_path):
     return data
 
 
+def get_username():
+    full_path = get_appdata_path()
+    with open(join(full_path, "username.dat"), "rb") as f:
+        username = decrypt_file(f.read())
+    return username
+
+
 def mark_lesson_finish(lesson_id):
     file_path = join(get_appdata_path(), "lessons.json")
     try:
-        with open(file_path, "rb") as file:
-            data = loads(decrypt_file(file.read()))
+        data = load_json(file_path)
 
-    except FileNotFoundError as fe:
+    except (FileNotFoundError, JSONDecodeError) as fe:
         print(fe)
         print()
         makedirs(join(get_appdata_path(), "images"), exist_ok=True)
 
-        with open(file_path, "wb") as file:
-            data = {"lessons": []}
-            file.write(encrypt_file(dumps(data)))
-            return None
-
-    except JSONDecodeError:
-        with open(file_path, "wb") as file:
-            data = {"lessons": []}
-            file.write(encrypt_file(dumps(data)))
+        data = {"lessons": []}
+        write_json(file_path, data)
+        return None
 
     for lesson in data["lessons"]:
         try:
@@ -45,8 +45,20 @@ def mark_lesson_finish(lesson_id):
                 return lesson
 
         except Exception as e:
-            print(e)
+            log_error(e)
             return None
+
+
+def write_save_data(host, port, ip_type, username_setting):
+    full_path = get_appdata_path()
+    with open(join(full_path, "connect-data.txt"), "wb") as f:
+        data = f"{port}\n{ip_type}\n{host}"
+        data = encrypt_file(data)
+        f.write(data)
+
+    with open(join(full_path, "username.dat"), "wb") as f:
+        data = encrypt_file(str(username_setting))
+        f.write(data)
 
 
 def find_lesson(lesson_id):
@@ -55,16 +67,10 @@ def find_lesson(lesson_id):
     try:
         data = load_json(file_path)
 
-    except FileNotFoundError as fe:
+    except (FileNotFoundError, JSONDecodeError) as fe:
         log_error(fe)
         print()
         makedirs(join(get_appdata_path(), "images"), exist_ok=True)
-        write_data = {"lessons": []}
-        write_json(file_path, write_data)
-        return None
-
-    except JSONDecodeError as je:
-        log_error(je)
         write_data = {"lessons": []}
         write_json(file_path, write_data)
         return None
