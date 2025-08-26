@@ -202,7 +202,9 @@ class Editor(QMainWindow):
         self.setCentralWidget(central)
         layout = QVBoxLayout()
 
-        title = QLabel("PyEducate: Lesson Maker/Editor\n\nDEPRECATED, USE server.py instead.", self)
+        title = QLabel(
+            "PyEducate: Lesson Maker/Editor\n\nDEPRECATED, USE server.py instead.", self
+        )
         create = QPushButton("Create Lesson", self)
         edit = QPushButton("Edit Lesson", self)
         delete = QPushButton("Delete Lesson", self)
