@@ -78,7 +78,6 @@ def send_leaderboard(client, filename, end_marker):
     try:
         loads(full_data)
     except Exception as e:
-
         print("[!] INVALID JSON! Sending failed!")
         log_error(e)
         return
