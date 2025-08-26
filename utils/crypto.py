@@ -1,8 +1,8 @@
 import keyring
 from cryptography.fernet import Fernet
 
-SERVICE_NAME = "PyEducate Launcher"
-KEY_NAME = "ConfigID"
+SERVICE_NAME = "PyEducate"
+KEY_NAME = ""
 
 
 def _write_key():
