@@ -1,5 +1,6 @@
 # Copyright (C) 2025 shegue77
 # SPDX-License-Identifier: GPL-3.0-or-later
+# DEPRECATED, USE server.py INSTEAD
 
 # ------------------------------------------------------[ DEPENDENCIES ]-----------------------------------------------------
 from sys import argv as sys_argv, exit as sys_exit
