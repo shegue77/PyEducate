@@ -21,7 +21,7 @@ from network.server.network import get_local_ip_address, validate_ip
 
 
 # -------------------------[ GLOBAL VARIABLES ]-------------------------
-app_version = "v2.0.0"
+app_version = "v2.0.1"
 clients: dict = {}  # Keeps track of clients
 server = None
 usernames: dict = {}  # Keeps track of usernames of clients

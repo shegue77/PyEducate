@@ -20,7 +20,7 @@ from utils.server.setup_server import setup
 
 
 # -------------------------[ GLOBAL VARIABLES ]-------------------------
-app_version = "v2.0.0"
+app_version = "v2.0.1"
 clients: dict = {}  # Keeps track of clients
 usernames: dict = {}  # Keeps track of usernames of clients
 active_threads: list = []  # Keeps track of (most) active threads.
