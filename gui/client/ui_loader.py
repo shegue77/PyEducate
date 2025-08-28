@@ -1,5 +1,7 @@
+import sys
+
 from time import sleep
-from os.path import abspath, join, dirname
+from os.path import abspath, join
 from threading import Thread
 
 from PySide6.QtWidgets import QMainWindow, QPushButton, QLineEdit
@@ -40,10 +42,12 @@ END_MARKER = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"
 
 
 def resource_path(relative_path):
-    # Get the directory of the current file (module)
-    module_dir = dirname(abspath(__file__))
-
-    return join(module_dir, relative_path)
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = abspath(".")
+    print(join(base_path, relative_path))
+    return join(base_path, relative_path)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -106,41 +110,49 @@ class MainWindow(QMainWindow):
     def _show_lesson_page(self, ui, change_menu=True):
         change_page(self, ui.lessons_page, change_menu=change_menu)
         previous_page, next_page, total_pages = init_lesson_page(self, ui)
+
+        # Disconnect all slots from this button's clicked signal
+        try:
+            previous_page.clicked.disconnect()
+        except Exception:
+            pass  # No connections yet
+
+        # Disconnect all slots from this button's clicked signal
+        try:
+            next_page.clicked.disconnect()
+        except Exception:
+            pass  # No connections yet
+
         previous_page.clicked.connect(lambda: self.previous_page_set(ui))
         next_page.clicked.connect(lambda: self.next_page_set(ui, total_pages))
 
     def next_page_set(self, ui, total_page: int):
         if self.page >= total_page:
-            return None
-
+            return
+        print(self.page)
+        print(total_page)
         self.page += 1
         self._show_lesson_page(ui, change_menu=False)
 
     def previous_page_set(self, ui):
         if self.page <= 1:
-            return None
-
+            return
+        print(self.page)
         self.page -= 1
         self._show_lesson_page(ui, change_menu=False)
 
     def _update_settings(self):
-        ip_setting: (QLineEdit, str) = self.findChild(QLineEdit, "ip_setting").text()
-        port_setting: (QLineEdit, str) = self.findChild(
-            QLineEdit, "port_setting"
-        ).text()
-        ip_type_setting: (QLineEdit, str) = self.findChild(
-            QLineEdit, "ip_type_setting"
-        ).text()
-        username_setting: (QLineEdit, str) = self.findChild(
-            QLineEdit, "user_setting"
-        ).text()
+        ip_setting: str = self.findChild(QLineEdit, "ip_setting").text()
+        port_setting: str = self.findChild(QLineEdit, "port_setting").text()
+        ip_type_setting: str = self.findChild(QLineEdit, "ip_type_setting").text()
+        username_setting: str = self.findChild(QLineEdit, "user_setting").text()
 
         write_save_data(ip_setting, port_setting, ip_type_setting, username_setting)
 
     def _load_ui(self):
 
         loader = QUiLoader()
-        ui_file = QFile(resource_path("interface.ui"))
+        ui_file = QFile(resource_path(join("gui", "client", "interface.ui")))
         ui_file.open(QFile.ReadOnly)
         ui = loader.load(ui_file, self)
         ui_file.close()

@@ -40,6 +40,7 @@ def resource_path(relative_path):
 
 
 def press_button(self, id_l, max_points=0.0):
+    print("Lesson attempt: " + str(self.lesson_attempt))
     points, lessons_completed = get_points_data()
     submit_button = self.findChild(QPushButton, "ltl_submit")
 
@@ -61,6 +62,9 @@ def press_button(self, id_l, max_points=0.0):
         == answer.replace('"', "'").rstrip()
     ):
         lessons_completed += 1
+        print(
+            "Points: " + str(round((float(max_points) / int(self.lesson_attempt)), 2))
+        )
         points += round((float(max_points) / int(self.lesson_attempt)), 2)
         self.lesson_attempt = 1
         lesson["completed"] = "True"
@@ -76,10 +80,12 @@ def press_button(self, id_l, max_points=0.0):
         submit_button.setStyleSheet(
             "background-color: hsl(115, 100%, 70%)"
         )  # light green
+        return True
 
     else:
         self.lesson_attempt += 1
         submit_button.setStyleSheet("background-color: hsl(0, 97%, 62%)")
+        return False
 
 
 def init_lesson(self, lesson, ui):
@@ -87,12 +93,13 @@ def init_lesson(self, lesson, ui):
     def _submit_lesson():
         submit.setDisabled(True)
         try:
-            press_button(self, int(lesson["id"]), float(lesson["points"]))
+            is_correct = press_button(self, int(lesson["id"]), float(lesson["points"]))
 
         except Exception as e:
             log_error(e)
-            press_button(self, int(lesson["id"]))
-        self.stacked_widget.setCurrentWidget(ui.lessons_page)
+            is_correct = press_button(self, int(lesson["id"]))
+        if is_correct:
+            self.stacked_widget.setCurrentWidget(ui.lessons_page)
         submit.setDisabled(False)
         init_lesson_page(self, ui)
 
@@ -115,6 +122,11 @@ def init_lesson(self, lesson, ui):
     self.stacked_widget.setCurrentWidget(ui.l_type_lesson)
     print("set lesson page")
 
+    # Disconnect all slots from this button's clicked signal
+    try:
+        submit.clicked.disconnect()
+    except Exception:
+        pass  # No connections yet
     submit.clicked.connect(_submit_lesson)
 
 
@@ -332,8 +344,16 @@ def init_lesson_page(self, ui):
         buttons[-2].setDisabled(False)
 
     for btn, lesson_id in zip(buttons, passed_lessons):
+        # Disconnect all slots from this button's clicked signal
+        try:
+            btn.clicked.disconnect()
+        except Exception:
+            pass  # No connections yet
+
         if lesson_id is not None:
+            # Connect new lambda capturing the current lesson_id
             btn.clicked.connect(
                 lambda _, lesson_i=lesson_id: submit_id_data(self, lesson_i, ui)
             )
+
     return buttons[-2], buttons[-1], total_pages

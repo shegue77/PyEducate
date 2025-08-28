@@ -1,4 +1,5 @@
-from os.path import abspath, join, dirname
+import sys
+from os.path import abspath, join
 from PySide6.QtWidgets import QMainWindow, QTextEdit, QLabel, QLineEdit, QPushButton
 from PySide6.QtCore import (
     QFile,
@@ -54,10 +55,11 @@ END_MARKER = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"
 
 
 def resource_path(relative_path):
-    # Get the directory of the current file (module)
-    module_dir = dirname(abspath(__file__))
-
-    return join(module_dir, relative_path)
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = abspath(".")
+    return join(base_path, relative_path)
 
 
 class MainWindow(QMainWindow):
@@ -192,7 +194,7 @@ class MainWindow(QMainWindow):
                 print(f"Sorry! Failed to preview lesson!")
 
         loader = QUiLoader()
-        ui_file = QFile(resource_path("interface.ui"))
+        ui_file = QFile(resource_path(join("gui", "server", "interface.ui")))
         ui_file.open(QFile.ReadOnly)
         ui = loader.load(ui_file, self)
         ui_file.close()
