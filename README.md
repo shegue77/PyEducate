@@ -5,10 +5,10 @@
 ---
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Offline_Mode-Enabled-brightgreen?style=for-the-badge&logo=wifi">
+  <img src="https://img.shields.io/badge/Offline_Mode-Enabled-brightgreen?style=for-the-badge&logo=wifi" alt="Offline Mode">
   <img src="https://img.shields.io/badge/Network-Socket_Based-blue?style=for-the-badge&logo=python" alt="Socket Based">
-  <img src="https://img.shields.io/badge/Gamified-Learning-ff69b4?style=for-the-badge&logo=star">
-  <img src="https://img.shields.io/badge/GUI-PySide6-6f42c1?style=for-the-badge&logo=qt">
+  <img src="https://img.shields.io/badge/Gamified-Learning-ff69b4?style=for-the-badge&logo=star" alt="Gamified Learning">
+  <img src="https://img.shields.io/badge/GUI-PySide6-6f42c1?style=for-the-badge&logo=qt" alt="PySide6 GUI">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPLv3-6f42c1?style=for-the-badge&logo=github"></a>
 </p>
 
@@ -69,9 +69,7 @@ python client.py
 
 ## 📸 Preview
 
-🎥 **[Watch Demo Video](https://youtu.be/-hf7UFrB3TM?si=wbkTFS1_gvcC7xMe)**
-
-🪟 **[View all demos & screenshots](https://github.com/shegue77/PyEducate/wiki/Screenshots)**
+🪟 **[View demos & screenshots](https://github.com/shegue77/PyEducate/wiki/Screenshots)**
 
 ---
 
