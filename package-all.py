@@ -3,15 +3,17 @@ from os.path import join
 from shutil import copy2, copytree
 
 stuff = ("LICENSE", "SOURCE")
-dist_parts = ("client", "server", "server-cli")
+dist_parts = ("client", "server")
 
-server_cli = "server-cli.py"
 server_path = "server.py"
 client_path = "client.py"
 
-print(system(f"pyinstaller --windowed {server_path}"))
-print(system(f"pyinstaller {server_cli}"))
-print(system(f"pyinstaller --windowed {client_path}"))
+print(
+    system(f'pyinstaller {server_path} --windowed --add-data "gui/server;gui/server"')
+)
+print(
+    system(f'pyinstaller {client_path} --windowed --add-data "gui/client;gui/client"')
+)
 
 for part in dist_parts:
     for i in stuff:
