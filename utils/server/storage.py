@@ -1,7 +1,7 @@
 from json import loads, dumps, JSONDecodeError
 from os.path import join, exists as os_path_exists
 from threading import Lock
-from utils.crypto import encrypt_file, decrypt_file
+from utils.crypto import encrypt_file, decrypt_file, encrypt_with_password, decrypt_with_password
 
 from .paths import get_appdata_path
 from .logger import log_error
@@ -18,9 +18,19 @@ def import_file(self):
         self, "Import File", "", "Lesson Files (*.json);;All Files (*)"
     )
     if file_path:
-        print("Imported:", file_path)
+        dialog = QInputDialog()
+        dialog.setWindowTitle("Password-protection")
+        dialog.setLabelText("Enter file password:")
+        dialog.setOkButtonText("Submit Password")
+        dialog.setCancelButtonText("No Password")
+
+        # Execute the dialog
+        if dialog.exec() == QInputDialog.Accepted:
+            password = dialog.textValue()
+        else:
+            password = ""
         try:
-            lesson_data = open(file_path, "rb").read().decode("utf-8")
+            lesson_data = decrypt_with_password(open(file_path, "rb").read(), password)
         except (FileNotFoundError, PermissionError) as fe:
             log_error(fe)
             print("File/Permission Error!")
@@ -43,6 +53,19 @@ def export_file(self):
         self, "Export File", "", "Lesson Files (*.json);;All Files (*)"
     )
     if file_path:
+        # Password
+        dialog = QInputDialog()
+        dialog.setWindowTitle("Password-protection")
+        dialog.setLabelText("Enter secure password (REMEMBER PASSWORD):")
+        dialog.setOkButtonText("Submit Password")
+        dialog.setCancelButtonText("No Password")
+
+
+        # Execute the dialog
+        if dialog.exec() == QInputDialog.Accepted:
+            password = dialog.textValue()
+        else:
+            password = ""
         try:
             with open(join(get_appdata_path(), "lessons.json"), "rb") as f:
                 lesson_data = decrypt_file(f.read())
@@ -51,7 +74,7 @@ def export_file(self):
             return
 
         with open(file_path, "wb") as f:
-            f.write(lesson_data.encode("utf-8"))
+            f.write(encrypt_with_password(lesson_data, password))
 
         print("Exported:", file_path)
 
