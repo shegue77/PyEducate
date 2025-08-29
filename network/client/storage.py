@@ -1,4 +1,4 @@
-from json import loads, dumps, JSONDecodeError
+from json import loads, JSONDecodeError
 from os.path import join
 from utils.client.paths import get_appdata_path
 from utils.client.logger import log_error
@@ -84,6 +84,6 @@ def download_file(client_r, mode, end_marker):
         except JSONDecodeError as e:
             log_error(e)
             print("❌ Invalid JSON string:", e)
-            return None
+            return
 
         write_json(join(get_appdata_path(), "leaderboards.json"), lesson)

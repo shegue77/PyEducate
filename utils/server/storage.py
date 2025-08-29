@@ -8,6 +8,89 @@ from .logger import log_error
 
 _safe_leaderboard = Lock()
 
+def import_file(self):
+    try:
+        from PySide6.QtWidgets import QFileDialog, QInputDialog
+    except ModuleNotFoundError as me:
+        log_error(me)
+        return
+    file_path, _ = QFileDialog.getOpenFileName(
+        self, "Import File", "", "Lesson Files (*.json);;All Files (*)"
+    )
+    if file_path:
+        print("Imported:", file_path)
+        try:
+            lesson_data = open(file_path, "rb").read().decode("utf-8")
+        except (FileNotFoundError, PermissionError) as fe:
+            log_error(fe)
+            print("File/Permission Error!")
+            return
+        except JSONDecodeError as je:
+            log_error(je)
+            print("Invalid JSON!")
+            return
+        print(lesson_data)
+        merge_lessons(lesson_data)
+
+
+def export_file(self):
+    try:
+        from PySide6.QtWidgets import QFileDialog, QInputDialog
+    except ModuleNotFoundError as me:
+        log_error(me)
+        return
+    file_path, _ = QFileDialog.getSaveFileName(
+        self, "Export File", "", "Lesson Files (*.json);;All Files (*)"
+    )
+    if file_path:
+        try:
+            with open(join(get_appdata_path(), "lessons.json"), "rb") as f:
+                lesson_data = decrypt_file(f.read())
+        except (FileNotFoundError, PermissionError) as fe:
+            log_error(fe)
+            return
+
+        with open(file_path, "wb") as f:
+            f.write(lesson_data.encode("utf-8"))
+
+        print("Exported:", file_path)
+
+def merge_lessons(new_lessons):
+    file_path = join(get_appdata_path(), "lessons.json")
+
+    try:
+        data = load_json(file_path)
+
+    except (FileNotFoundError, JSONDecodeError):
+        data = {"lessons": []}
+
+    lessons = data["lessons"]
+
+    if isinstance(new_lessons, str):
+        try:
+            new_lessons = loads(new_lessons)
+        except JSONDecodeError as e:
+            log_error(e)
+            print("❌ Invalid JSON string:", e)
+            return None
+
+    if not isinstance(new_lessons, list):
+
+        if isinstance(new_lessons, dict):
+            for lesson in new_lessons["lessons"]:
+                lesson["id"] = len(lessons) + 1
+                lessons.append(lesson)
+        else:
+            return None
+    else:
+        print("❌ Input must be a list/dict of lessons.")
+        for lesson in new_lessons:
+            lesson["id"] = len(lessons) + 1
+            lessons.append(lesson)
+
+    write_json(file_path, data)
+    print(f"✅ Added {len(new_lessons)} lessons.")
+    return "SUCCESS"
 
 def lesson_req_checks(all_texts):
     title = all_texts[0].text()
@@ -127,7 +210,7 @@ def create_json(id_input, all_texts):
     except JSONDecodeError as e:
         print("❌ Invalid JSON:", e)
         log_error(e)
-        return
+        return None
 
     # Load from file
     try:
@@ -218,13 +301,10 @@ def read_leaderboard(filename):
     with _safe_leaderboard:
         if not os_path_exists(filename):
             # Create empty file if it doesn't exist
-            with open(filename, "wb") as f:
-                json_data = []
-                f.write(encrypt_file(dumps(json_data)))
+            write_json(filename, [])
             return []
 
-        with open(filename, "rb") as f:
-            return loads(decrypt_file(f.read()))
+        return load_json(filename)
 
 
 def clean_leaderboard(file_path):
@@ -236,28 +316,18 @@ def clean_leaderboard(file_path):
 
     def get_board_types(file_path):
 
-        def create_json():
-            with open(file_path, "wb") as file:
-                json_data = []
-                file.write(encrypt_file(dumps(json_data)))
-
         try:
             with open(file_path, "rb") as f:
                 data = loads(decrypt_file(f.read()))
 
-        except FileNotFoundError as fe:
+        except (FileNotFoundError, JSONDecodeError) as fe:
             log_error(fe)
-            create_json()
-
-        except JSONDecodeError:
-            with open(file_path, "wb") as file:
-                data = []
-                file.write(encrypt_file(dumps(data)))
+            write_json(file_path, [])
 
         leaderboard_items = []
 
-        for part in data:
-            for i in part.keys():
+        for item in data:
+            for i in item.keys():
                 if i != "username":
                     leaderboard_items.append(i)
             break
@@ -289,9 +359,7 @@ def update_leaderboard(username, point_amount, lesson_completed):
 
         with _safe_leaderboard:
             try:
-                with open(filename, "wb") as f:
-                    leaderboard = dumps(leaderboard)
-                    f.write(encrypt_file(leaderboard))
+                write_json(filename, leaderboard)
 
             except Exception as e:
                 log_error(e)
@@ -324,3 +392,4 @@ def update_leaderboard(username, point_amount, lesson_completed):
         return None
 
     _add_or_update_user(file_name, username, point_amount, lesson_completed)
+    return None

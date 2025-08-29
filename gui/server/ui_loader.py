@@ -14,7 +14,7 @@ from .widget_loader import (
     change_page,
     edit_lesson,
     init_lesson,
-    load_lesson_page,
+    load_lesson_page
 )
 from utils.server.storage import (
     list_lessons,
@@ -22,6 +22,8 @@ from utils.server.storage import (
     write_save_data,
     create_json,
     del_lesson,
+    import_file,
+    export_file
 )
 from utils.server.logger import log_error
 from network.server.network import get_server_data
@@ -84,14 +86,14 @@ class MainWindow(QMainWindow):
         disconnect()
 
     def _update_settings(self):
-        ip_setting: (QLineEdit, str) = self.findChild(QLineEdit, "ip_setting").text()
-        port_setting: (QLineEdit, str) = self.findChild(
+        ip_setting: str = self.findChild(QLineEdit, "ip_setting").text()
+        port_setting: str = self.findChild(
             QLineEdit, "port_setting"
         ).text()
-        ip_type_setting: (QLineEdit, str) = self.findChild(
+        ip_type_setting: str = self.findChild(
             QLineEdit, "ip_type_setting"
         ).text()
-        username_setting: (QLineEdit, str) = self.findChild(
+        username_setting: str = self.findChild(
             QLineEdit, "user_setting"
         ).text()
 
@@ -101,8 +103,9 @@ class MainWindow(QMainWindow):
         server_text = get_server_data()
         command_line_txt: QLineEdit = self.findChild(QLineEdit, "command_line_txt")
         command = command_line_txt.text()
-        choice: [str, QLineEdit] = self.findChild(QLineEdit, "send_type_text").text()
+        choice: str = self.findChild(QLineEdit, "send_type_text").text()
         process_command(self, server_text, command, choice)
+
 
     def _load_ui(self):
         def _create_lessons():
@@ -227,6 +230,8 @@ class MainWindow(QMainWindow):
             stop_server_b,
             run_cmd,
             refresh_c_list,
+            import_lessons_b,
+            export_lessons_b
         ) = get_widgets(self, ui)
         submit_settings_b: QPushButton = self.findChild(QPushButton, "submit_settings")
 
@@ -236,6 +241,9 @@ class MainWindow(QMainWindow):
         get_l_p_button.clicked.connect(_get_lesson)
         edit_l_button.clicked.connect(_show_edit_page)
         create_lesson_b_2.clicked.connect(lambda: edit_lesson(self, ui))
+
+        import_lessons_b.clicked.connect(lambda: import_file(self))
+        export_lessons_b.clicked.connect(lambda: export_file(self))
 
         start_server_b.clicked.connect(_init_server)
         stop_server_b.clicked.connect(self._stop_server)

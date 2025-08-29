@@ -199,6 +199,9 @@ def get_widgets(self, ui):
     )
     run_cmd: QPushButton = self.findChild(QPushButton, "run_cmd")
 
+    import_lessons_b: QPushButton = self.findChild(QPushButton, "import_lessons_b")
+    export_lessons_b: QPushButton = self.findChild(QPushButton, "export_lessons_b")
+
     create_lesson: QPushButton = self.findChild(QPushButton, "create_lesson_b")
     title_text: QLineEdit = self.findChild(QLineEdit, "title_text")
     points_text: QLineEdit = self.findChild(QLineEdit, "points_text")
@@ -251,4 +254,6 @@ def get_widgets(self, ui):
         stop_server_b,
         run_cmd,
         refresh_client_list,
+        import_lessons_b,
+        export_lessons_b
     )
