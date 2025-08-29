@@ -47,6 +47,7 @@ def mark_lesson_finish(lesson_id):
         except Exception as e:
             log_error(e)
             return None
+    return None
 
 
 def write_save_data(host, port, ip_type, username_setting):
@@ -95,3 +96,4 @@ def find_lesson(lesson_id):
                     str(quiz["answer"]),
                     str(is_complete),
                 )
+    return None
