@@ -63,9 +63,7 @@ def press_button(self, id_l, max_points=0.0):
     ):
         lessons_completed += 1
         points_given = round((float(max_points) / int(self.lesson_attempt)), 2)
-        print(
-            "Points: " + str(points_given)
-        )
+        print("Points: " + str(points_given))
         points += points_given
         self.lesson_attempt = 1
         lesson["completed"] = "True"
