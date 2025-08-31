@@ -1,12 +1,30 @@
 from json import loads, dumps, JSONDecodeError
 from os.path import join, exists as os_path_exists
 from threading import Lock
-from utils.crypto import encrypt_file, decrypt_file, encrypt_with_password, decrypt_with_password
+from utils.crypto import encrypt_file, decrypt_file, encrypt_with_password, decrypt_with_password, get_signature
 
 from .paths import get_appdata_path
 from .logger import log_error
 
 _safe_leaderboard = Lock()
+
+def _validate_lesson(lesson_data):
+    from utils.crypto import verify_signature
+    lesson_data = loads(lesson_data)
+    lesson_data = lesson_data["lessons"]
+
+    valid_ids = {}
+
+    for lesson in lesson_data:
+        sign64 = lesson["signature"]
+        lesson.pop("signature", None)
+        lesson_id = lesson["id"]
+        del lesson["id"]
+        if verify_signature(dumps(lesson), sign64):
+            valid_ids.update({int(lesson_id): True})
+        else:
+            valid_ids.update({int(lesson_id): False})
+    return valid_ids
 
 def import_file(self):
     try:
@@ -27,19 +45,21 @@ def import_file(self):
         # Execute the dialog
         if dialog.exec() == QInputDialog.Accepted:
             password = dialog.textValue()
+            try:
+                lesson_data = decrypt_with_password(open(file_path, "rb").read(), password)
+                print(_validate_lesson(lesson_data))
+            except (FileNotFoundError, PermissionError, JSONDecodeError) as fe:
+                log_error(fe)
+                print(fe)
+                return
         else:
-            password = ""
-        try:
-            lesson_data = decrypt_with_password(open(file_path, "rb").read(), password)
-        except (FileNotFoundError, PermissionError) as fe:
-            log_error(fe)
-            print("File/Permission Error!")
-            return
-        except JSONDecodeError as je:
-            log_error(je)
-            print("Invalid JSON!")
-            return
-        print(lesson_data)
+            try:
+                lesson_data = open(file_path, "rb").read().decode("utf-8")
+                print(_validate_lesson(lesson_data))
+            except (FileNotFoundError, PermissionError, JSONDecodeError) as fe:
+                log_error(fe)
+                print(fe)
+                return
         merge_lessons(lesson_data)
 
 
@@ -52,6 +72,12 @@ def export_file(self):
     file_path, _ = QFileDialog.getSaveFileName(
         self, "Export File", "", "Lesson Files (*.json);;All Files (*)"
     )
+    try:
+        with open(join(get_appdata_path(), "lessons.json"), "rb") as f:
+            lesson_data = decrypt_file(f.read().decode("utf-8"))
+    except (FileNotFoundError, PermissionError) as fe:
+        log_error(fe)
+        return
     if file_path:
         # Password
         dialog = QInputDialog()
@@ -60,21 +86,23 @@ def export_file(self):
         dialog.setOkButtonText("Submit Password")
         dialog.setCancelButtonText("No Password")
 
+        lesson_data = loads(lesson_data)
+        for lesson in lesson_data["lessons"]:
+            lesson_id = lesson["id"]
+            del lesson["id"]
+            lesson.pop("signature", None)
+            lesson["signature"] = get_signature(dumps(lesson))
+            lesson["id"] = lesson_id
+        lesson_data = dumps(lesson_data)
 
         # Execute the dialog
         if dialog.exec() == QInputDialog.Accepted:
             password = dialog.textValue()
+            with open(file_path, "wb") as f:
+                f.write(encrypt_with_password(lesson_data, password))
         else:
-            password = ""
-        try:
-            with open(join(get_appdata_path(), "lessons.json"), "rb") as f:
-                lesson_data = decrypt_file(f.read())
-        except (FileNotFoundError, PermissionError) as fe:
-            log_error(fe)
-            return
-
-        with open(file_path, "wb") as f:
-            f.write(encrypt_with_password(lesson_data, password))
+            with open(file_path, "wb") as f:
+                f.write(lesson_data.encode("utf-8"))
 
         print("Exported:", file_path)
 
@@ -100,9 +128,12 @@ def merge_lessons(new_lessons):
     if not isinstance(new_lessons, list):
 
         if isinstance(new_lessons, dict):
+            lesson_count = 0
             for lesson in new_lessons["lessons"]:
                 lesson["id"] = len(lessons) + 1
                 lessons.append(lesson)
+                lesson_count += 1
+            print(f"✅ Added {lesson_count} lessons.")
         else:
             return None
     else:
@@ -110,9 +141,9 @@ def merge_lessons(new_lessons):
         for lesson in new_lessons:
             lesson["id"] = len(lessons) + 1
             lessons.append(lesson)
+        print(f"✅ Added {len(new_lessons)} lessons.")
 
     write_json(file_path, data)
-    print(f"✅ Added {len(new_lessons)} lessons.")
     return "SUCCESS"
 
 def lesson_req_checks(all_texts):
@@ -235,6 +266,12 @@ def create_json(id_input, all_texts):
         log_error(e)
         return None
 
+    lesson_id = new_lesson["id"]
+    del new_lesson["id"]
+    signature = get_signature(dumps(new_lesson))
+    new_lesson["id"] = lesson_id
+    new_lesson["signature"] = signature
+
     # Load from file
     try:
         data = load_json(file_path)
@@ -298,6 +335,7 @@ def find_lesson(lesson_id):
         except Exception as e:
             log_error(e)
             return None
+    return None
 
 
 def list_lessons(error_message: str = "No lessons found!"):

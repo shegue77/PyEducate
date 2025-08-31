@@ -3,7 +3,7 @@ from os.path import join
 from os import makedirs
 from .paths import get_appdata_path
 from .logger import log_error
-from utils.crypto import decrypt_file, encrypt_file
+from utils.crypto import decrypt_file, encrypt_file, decrypt_with_password
 
 
 def write_json(file_path, data):
@@ -49,6 +49,79 @@ def mark_lesson_finish(lesson_id):
             return None
     return None
 
+def import_file(self):
+    try:
+        from PySide6.QtWidgets import QFileDialog, QInputDialog
+    except ModuleNotFoundError as me:
+        log_error(me)
+        print(me)
+        return
+    file_path, _ = QFileDialog.getOpenFileName(
+        self, "Import File", "", "Lesson Files (*.json);;All Files (*)"
+    )
+    if file_path:
+        dialog = QInputDialog()
+        dialog.setWindowTitle("Password-protection")
+        dialog.setLabelText("Enter file password:")
+        dialog.setOkButtonText("Submit Password")
+        dialog.setCancelButtonText("No Password")
+
+        # Execute the dialog
+        if dialog.exec() == QInputDialog.Accepted:
+            password = dialog.textValue()
+            try:
+                lesson_data = decrypt_with_password(open(file_path, "rb").read(), password)
+            except (FileNotFoundError, PermissionError, JSONDecodeError) as fe:
+                log_error(fe)
+                print(fe)
+                return
+        else:
+            try:
+                lesson_data = open(file_path, "rb").read().decode("utf-8")
+            except (FileNotFoundError, PermissionError, JSONDecodeError) as fe:
+                log_error(fe)
+                print(fe)
+                return
+        merge_lessons(lesson_data)
+
+def merge_lessons(new_lessons):
+    file_path = join(get_appdata_path(), "lessons.json")
+
+    try:
+        data = load_json(file_path)
+
+    except (FileNotFoundError, JSONDecodeError):
+        data = {"lessons": []}
+
+    lessons = data["lessons"]
+
+    if isinstance(new_lessons, str):
+        try:
+            new_lessons = loads(new_lessons)
+        except JSONDecodeError as e:
+            log_error(e)
+            print("❌ Invalid JSON string:", e)
+            return None
+
+    if not isinstance(new_lessons, list):
+
+        if isinstance(new_lessons, dict):
+            for lesson in new_lessons["lessons"]:
+                lesson["id"] = len(lessons) + 1
+                lessons.append(lesson)
+        else:
+            print("❌ Input must be a list/dict of lessons (a).")
+            print(type(new_lessons))
+            return None
+    else:
+        print("❌ Input must be a list/dict of lessons.")
+        for lesson in new_lessons:
+            lesson["id"] = len(lessons) + 1
+            lessons.append(lesson)
+
+    write_json(file_path, data)
+    print(f"✅ Added {len(new_lessons)} lessons.")
+    return "SUCCESS"
 
 def write_save_data(host, port, ip_type, username_setting):
     full_path = get_appdata_path()
