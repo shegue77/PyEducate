@@ -1,5 +1,6 @@
 from keyring import get_password, set_password
 from os import urandom
+import hmac, hashlib, base64
 from base64 import urlsafe_b64encode
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -14,9 +15,35 @@ def _derive_key(password: str, salt: bytes) -> bytes:
         algorithm=hashes.SHA256(),
         length=32,          # 32-byte key
         salt=salt,
-        iterations=600_000, # adjust for desired security/performance
+        iterations=1_200_000, # adjust for desired security/performance
     )
     return urlsafe_b64encode(kdf.derive(password.encode()))
+
+def get_signature(data):
+    key = load_or_create_key()
+
+    lesson_hash = hashlib.sha256(data.encode()).digest()
+
+    # 2. HMAC over the hash
+    signature = hmac.new(key, lesson_hash, hashlib.sha256).digest()
+    signature_b64 = base64.b64encode(signature).decode()
+    return signature_b64
+
+
+def verify_signature(lesson_str: str, signature_b64):
+    key = load_or_create_key()
+    # 1. Compute SHA-256 hash of the lesson string
+    lesson_hash = hashlib.sha256(lesson_str.encode()).digest()
+
+    # 2. Compute expected HMAC over the hash
+    expected_sig = hmac.new(key, lesson_hash, hashlib.sha256).digest()
+
+    # 3. Decode provided signature
+    sig_bytes = base64.b64decode(signature_b64)
+
+    # 4. Compare securely
+    return hmac.compare_digest(expected_sig, sig_bytes)
+
 
 def encrypt_with_password(data: str, password: str) -> bytes:
     # Encrypt data using only a password. Returns salt+ciphertext.
