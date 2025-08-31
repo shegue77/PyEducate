@@ -6,7 +6,7 @@ Last updated: **26/08/2025**
 
 ## 🗝️ Key
 - [ ] **Planned** - not started  
-- [x] **Completed** - finished and merged
+- [x] **Completed** - finished
 
 🔄 **In Progress** - actively being worked on
 
@@ -31,11 +31,11 @@ Expanding functionality, customization, and security.
 
 ### ⚙️ Functionality
 - [ ] Embed python interpreter into lessons
-- [ ] Expand lesson types
+- 🔄️ Expand lesson types
 
 ### 🔐 Security Enhancements
 - [ ] Implement socket encryption for secure communication
-- 🔄️ Add secure import/export of lesson data
+- [x] Add secure import/export of lesson data
 - [ ] Implement certificates (made by host) to verify lessons
 
 ---
