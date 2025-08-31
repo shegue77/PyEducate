@@ -149,7 +149,7 @@ if __name__ == "__main__":
         IP_TYPE = input("Enter IP type (IPv4/IPv6): ").lower()
 
         with open(file_path, "wb") as file:
-            data = f"{SERVER_IP}\n{SERVER_PORT}\n{IP_TYPE}"
-            file.write(encrypt_file(data))
+            write_data = f"{SERVER_IP}\n{SERVER_PORT}\n{IP_TYPE}"
+            file.write(encrypt_file(write_data))
 
     start_client(SERVER_IP, SERVER_PORT, IP_TYPE.lower())
