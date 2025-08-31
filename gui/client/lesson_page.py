@@ -62,12 +62,15 @@ def press_button(self, id_l, max_points=0.0):
         == answer.replace('"', "'").rstrip()
     ):
         lessons_completed += 1
+        points_given = round((float(max_points) / int(self.lesson_attempt)), 2)
         print(
-            "Points: " + str(round((float(max_points) / int(self.lesson_attempt)), 2))
+            "Points: " + str(points_given)
         )
-        points += round((float(max_points) / int(self.lesson_attempt)), 2)
+        points += points_given
         self.lesson_attempt = 1
         lesson["completed"] = "True"
+        lesson["points_given"] = str(points_given)
+        print(lesson)
 
         write_json(file_path, data)
 

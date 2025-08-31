@@ -61,6 +61,7 @@ def init_leaderboard(self):
 
         self.leaderboard_page += 1
         init_leaderboard(self)
+        return None
 
     def previous_page_set():
         if self.leaderboard_page <= 1:
@@ -68,6 +69,7 @@ def init_leaderboard(self):
 
         self.leaderboard_page -= 1
         init_leaderboard(self)
+        return None
 
     def get_board_type():
         board_types = get_total_pages()[0]
@@ -138,6 +140,7 @@ def init_leaderboard(self):
 
     previous_page.clicked.connect(previous_page_set)
     next_page.clicked.connect(lambda: next_page_set(total_pages))
+    return None
 
 
 def _load_settings_page(self):
@@ -220,6 +223,7 @@ def get_widgets(self, ui):
 
     # Load & connect menu buttons
     lesson_page = self.findChild(QPushButton, "lessons_button")
+    import_lessons_b: QPushButton = self.findChild(QPushButton, "import_lessons_b")
     self.findChild(QPushButton, "home_button").clicked.connect(
         lambda: change_page(self, ui.home_page, ui_name="home_page")
     )
@@ -233,4 +237,10 @@ def get_widgets(self, ui):
         lambda: change_page(self, ui.about_page)
     )
 
-    return (stacked_widget, side_menu, menu_btn, lesson_page)
+    return (
+        stacked_widget,
+        side_menu,
+        menu_btn,
+        lesson_page,
+        import_lessons_b
+    )

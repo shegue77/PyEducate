@@ -86,9 +86,9 @@ def load_admin_page(self):
 
 
 def ban_ip_addr(self):
-    ip_addr_text: (QLineEdit, str) = self.findChild(QLineEdit, "ip_addr_text")
-    ban_reason_text: (QLineEdit, str) = self.findChild(QLineEdit, "ban_reason_text")
-    ban_severity_text: (QLineEdit, str) = self.findChild(QLineEdit, "ban_severity_text")
+    ip_addr_text: QLineEdit = self.findChild(QLineEdit, "ip_addr_text")
+    ban_reason_text: QLineEdit = self.findChild(QLineEdit, "ban_reason_text")
+    ban_severity_text: QLineEdit = self.findChild(QLineEdit, "ban_severity_text")
 
     texts: list = [
         ip_addr_text.text(),
@@ -105,7 +105,7 @@ def ban_ip_addr(self):
 
 
 def unban_ip_addr(self):
-    ip_addr_text: (QLineEdit, str) = self.findChild(QLineEdit, "ip_addr_text")
+    ip_addr_text: QLineEdit = self.findChild(QLineEdit, "ip_addr_text")
     print(unban_user(ip_addr_text.text()))
 
     ip_addr_text.setText("")

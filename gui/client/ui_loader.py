@@ -15,7 +15,7 @@ from PySide6.QtUiTools import QUiLoader
 
 from network.client import connectmod
 from utils.client.paths import get_appdata_path
-from utils.client.storage import write_save_data
+from utils.client.storage import write_save_data, import_file
 from utils.crypto import decrypt_file, encrypt_file
 from .widget_loader import get_widgets, change_page
 from .lesson_page import init_lesson_page
@@ -84,6 +84,7 @@ except FileNotFoundError as fe:
 
 except (ValueError, TypeError, IndexError) as ve:
     print(f"[!!] Corrupted data!\n{ve}")
+    print(data)
     file_path = join(get_appdata_path(), "connect-data.txt")
     with open(file_path, "wb") as file:
         file.write(encrypt_file(""))
@@ -146,6 +147,8 @@ class MainWindow(QMainWindow):
         port_setting: str = self.findChild(QLineEdit, "port_setting").text()
         ip_type_setting: str = self.findChild(QLineEdit, "ip_type_setting").text()
         username_setting: str = self.findChild(QLineEdit, "user_setting").text()
+        if ip_type_setting == "":
+            ip_type_setting = "ipv4"
 
         write_save_data(ip_setting, port_setting, ip_type_setting, username_setting)
 
@@ -162,11 +165,16 @@ class MainWindow(QMainWindow):
         else:
             self.setCentralWidget(ui)
 
-        (self.stacked_widget, self.side_menu, self.menu_btn, lesson_page) = get_widgets(
-            self, ui
-        )
+        (
+            self.stacked_widget,
+            self.side_menu,
+            self.menu_btn,
+            lesson_page,
+            import_lessons_b
+         ) = get_widgets(self, ui)
 
         lesson_page.clicked.connect(lambda: self._show_lesson_page(ui))
+        import_lessons_b.clicked.connect(lambda: import_file(self))
 
         self.findChild(QPushButton, "reload_lessons").clicked.connect(
             lambda: self._show_lesson_page(ui, False)
