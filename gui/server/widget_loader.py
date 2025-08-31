@@ -255,5 +255,5 @@ def get_widgets(self, ui):
         run_cmd,
         refresh_client_list,
         import_lessons_b,
-        export_lessons_b
+        export_lessons_b,
     )

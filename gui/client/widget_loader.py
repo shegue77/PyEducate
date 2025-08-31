@@ -237,10 +237,4 @@ def get_widgets(self, ui):
         lambda: change_page(self, ui.about_page)
     )
 
-    return (
-        stacked_widget,
-        side_menu,
-        menu_btn,
-        lesson_page,
-        import_lessons_b
-    )
+    return (stacked_widget, side_menu, menu_btn, lesson_page, import_lessons_b)

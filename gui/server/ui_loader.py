@@ -14,7 +14,7 @@ from .widget_loader import (
     change_page,
     edit_lesson,
     init_lesson,
-    load_lesson_page
+    load_lesson_page,
 )
 from utils.server.storage import (
     list_lessons,
@@ -23,7 +23,7 @@ from utils.server.storage import (
     create_json,
     del_lesson,
     import_file,
-    export_file
+    export_file,
 )
 from utils.server.logger import log_error
 from network.server.network import get_server_data
@@ -87,15 +87,9 @@ class MainWindow(QMainWindow):
 
     def _update_settings(self):
         ip_setting: str = self.findChild(QLineEdit, "ip_setting").text()
-        port_setting: str = self.findChild(
-            QLineEdit, "port_setting"
-        ).text()
-        ip_type_setting: str = self.findChild(
-            QLineEdit, "ip_type_setting"
-        ).text()
-        username_setting: str = self.findChild(
-            QLineEdit, "user_setting"
-        ).text()
+        port_setting: str = self.findChild(QLineEdit, "port_setting").text()
+        ip_type_setting: str = self.findChild(QLineEdit, "ip_type_setting").text()
+        username_setting: str = self.findChild(QLineEdit, "user_setting").text()
 
         write_save_data(ip_setting, port_setting, ip_type_setting, username_setting)
 
@@ -105,7 +99,6 @@ class MainWindow(QMainWindow):
         command = command_line_txt.text()
         choice: str = self.findChild(QLineEdit, "send_type_text").text()
         process_command(self, server_text, command, choice)
-
 
     def _load_ui(self):
         def _create_lessons():
@@ -231,7 +224,7 @@ class MainWindow(QMainWindow):
             run_cmd,
             refresh_c_list,
             import_lessons_b,
-            export_lessons_b
+            export_lessons_b,
         ) = get_widgets(self, ui)
         submit_settings_b: QPushButton = self.findChild(QPushButton, "submit_settings")
 

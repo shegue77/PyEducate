@@ -170,8 +170,8 @@ class MainWindow(QMainWindow):
             self.side_menu,
             self.menu_btn,
             lesson_page,
-            import_lessons_b
-         ) = get_widgets(self, ui)
+            import_lessons_b,
+        ) = get_widgets(self, ui)
 
         lesson_page.clicked.connect(lambda: self._show_lesson_page(ui))
         import_lessons_b.clicked.connect(lambda: import_file(self))

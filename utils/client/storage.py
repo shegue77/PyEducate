@@ -49,6 +49,7 @@ def mark_lesson_finish(lesson_id):
             return None
     return None
 
+
 def import_file(self):
     try:
         from PySide6.QtWidgets import QFileDialog, QInputDialog
@@ -70,7 +71,9 @@ def import_file(self):
         if dialog.exec() == QInputDialog.Accepted:
             password = dialog.textValue()
             try:
-                lesson_data = decrypt_with_password(open(file_path, "rb").read(), password)
+                lesson_data = decrypt_with_password(
+                    open(file_path, "rb").read(), password
+                )
             except (FileNotFoundError, PermissionError, JSONDecodeError) as fe:
                 log_error(fe)
                 print(fe)
@@ -83,6 +86,7 @@ def import_file(self):
                 print(fe)
                 return
         merge_lessons(lesson_data)
+
 
 def merge_lessons(new_lessons):
     file_path = join(get_appdata_path(), "lessons.json")
@@ -122,6 +126,7 @@ def merge_lessons(new_lessons):
     write_json(file_path, data)
     print(f"✅ Added {len(new_lessons)} lessons.")
     return "SUCCESS"
+
 
 def write_save_data(host, port, ip_type, username_setting):
     full_path = get_appdata_path()
