@@ -9,15 +9,17 @@ from cryptography.fernet import Fernet
 SERVICE_NAME = "PyEducate"
 KEY_NAME = ""
 
+
 def _derive_key(password: str, salt: bytes) -> bytes:
     # Derive a Fernet key from a password and salt.
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
-        length=32,          # 32-byte key
+        length=32,  # 32-byte key
         salt=salt,
-        iterations=1_200_000, # adjust for desired security/performance
+        iterations=1_200_000,  # adjust for desired security/performance
     )
     return urlsafe_b64encode(kdf.derive(password.encode()))
+
 
 def get_signature(data):
     key = load_or_create_key()
@@ -47,11 +49,12 @@ def verify_signature(lesson_str: str, signature_b64):
 
 def encrypt_with_password(data: str, password: str) -> bytes:
     # Encrypt data using only a password. Returns salt+ciphertext.
-    salt = urandom(16)        # random salt per file
+    salt = urandom(16)  # random salt per file
     key = _derive_key(password, salt)
     f = Fernet(key)
     token = f.encrypt(data.encode())
-    return salt + token          # prepend salt for transport/storage
+    return salt + token  # prepend salt for transport/storage
+
 
 def decrypt_with_password(encrypted: bytes, password: str) -> str:
     # Decrypt data using only the password.
