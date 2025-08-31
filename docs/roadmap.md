@@ -28,7 +28,6 @@ Expanding functionality, customization, and security.
 
 ### 🎨 User Experience
 - [ ] Customization options for the GUI (themes, layouts)
-- [ ] Packaging/distribution options for deploying on multiple machines
 
 ### ⚙️ Functionality
 - [ ] Embed python interpreter into lessons
@@ -36,7 +35,7 @@ Expanding functionality, customization, and security.
 
 ### 🔐 Security Enhancements
 - [ ] Implement socket encryption for secure communication
-- [ ] Add secure import/export of lesson data
+- 🔄️ Add secure import/export of lesson data
 - [ ] Implement certificates (made by host) to verify lessons
 
 ---
