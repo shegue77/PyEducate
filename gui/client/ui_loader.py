@@ -88,6 +88,7 @@ def start_loop():
         with open(file_path, "wb") as file:
             file.write(encrypt_file(""))
 
+
 Thread(target=start_loop, daemon=True).start()
 
 # --------------------------------------------------------------------------------------------------
@@ -150,6 +151,8 @@ class MainWindow(QMainWindow):
         username_setting: str = self.findChild(QLineEdit, "user_setting").text()
         if ip_type_setting == "":
             ip_type_setting = "ipv4"
+
+        write_save_data(ip_setting, port_setting, ip_type_setting, username_setting)
         try:
             connectmod.close_client()
         except Exception:
@@ -157,9 +160,6 @@ class MainWindow(QMainWindow):
 
         if not connectmod.is_connected():
             Thread(target=start_loop, daemon=True).start()
-
-
-        write_save_data(ip_setting, port_setting, ip_type_setting, username_setting)
 
     def _load_ui(self):
 

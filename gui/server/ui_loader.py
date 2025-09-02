@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
-    QWidget
+    QWidget,
 )
 
 from PySide6.QtCore import (
@@ -98,10 +98,10 @@ class MainWindow(QMainWindow):
                 self.findChild(QLineEdit, "quiz_op_1"),
                 self.findChild(QLineEdit, "quiz_op_2"),
                 self.findChild(QLineEdit, "quiz_op_3"),
-                self.findChild(QLineEdit, "quiz_op_4")
+                self.findChild(QLineEdit, "quiz_op_4"),
             ],
             "points": self.findChild(QLineEdit, "quiz_points_text"),
-            "next_button": self.findChild(QPushButton, "create_quiz_b")
+            "next_button": self.findChild(QPushButton, "create_quiz_b"),
         }
 
         # Create handler
@@ -121,7 +121,9 @@ class MainWindow(QMainWindow):
 
         # Save current question
         done = self.quiz_handler.next_question()
-        print(f"Saved question {self.quiz_handler.current_index} of {self.quiz_handler.total_questions}")
+        print(
+            f"Saved question {self.quiz_handler.current_index} of {self.quiz_handler.total_questions}"
+        )
 
         if done:
             # Last question entered → save lesson

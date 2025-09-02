@@ -25,18 +25,20 @@ class QuizBuilder:
             "id": str(self._next_id()),
             "title": title,
             "author": author,
-            "quiz": []
+            "quiz": [],
         }
 
     def add_quiz(self, question, options, answer, points):
         if not self.lesson:
-           print("Call start() first")
-        self.lesson["quiz"].append({
-            "question": question,
-            "options": options,
-            "answer": answer,
-            "points": points
-        })
+            print("Call start() first")
+        self.lesson["quiz"].append(
+            {
+                "question": question,
+                "options": options,
+                "answer": answer,
+                "points": points,
+            }
+        )
 
     def save(self):
         # Save lesson to JSON and add signature.
@@ -48,8 +50,11 @@ class QuizBuilder:
 
         self.data["lessons"].append(self.lesson)
         write_json(self.file_path, self.data)
-        print(f"✅ Saved lesson {self.lesson['id']} with {len(self.lesson['quiz'])} quizzes")
+        print(
+            f"✅ Saved lesson {self.lesson['id']} with {len(self.lesson['quiz'])} quizzes"
+        )
         return self.lesson["id"]
+
 
 class QuizHandler:
     def __init__(self, widgets):
@@ -70,12 +75,14 @@ class QuizHandler:
         answer = options[3]  # quiz_op_4 is always the correct answer
         points = w["points"].text()
 
-        self.quiz_list.append({
-            "question": question,
-            "options": options,
-            "answer": answer,
-            "points": points
-        })
+        self.quiz_list.append(
+            {
+                "question": question,
+                "options": options,
+                "answer": answer,
+                "points": points,
+            }
+        )
         self.current_index += 1
 
         # Clear fields for next question

@@ -117,7 +117,9 @@ def init_lesson(self, lesson, ui):
         self.findChild(QLabel, "ltl_desc").setText(
             str(lesson["content"].replace("\\n", "\n"))
         )
-        self.findChild(QLabel, "ltl_l_task").setText("Lesson Task: " + str(options_text))
+        self.findChild(QLabel, "ltl_l_task").setText(
+            "Lesson Task: " + str(options_text)
+        )
         submit = self.findChild(QPushButton, "ltl_submit")
         submit.setStyleSheet(
             "padding: 10px; background-color: #040f13; border-radius: 10px;"
@@ -382,6 +384,7 @@ def init_lesson_page(self, ui):
 
     return buttons[-2], buttons[-1], total_pages
 
+
 # ------------- Quiz Handler -------------
 class QuizHandler:
     def __init__(self, main, ui, lesson):
@@ -429,7 +432,9 @@ class QuizHandler:
 
     def _update_questions_mark(self):
         questions_complete = self.main.findChild(QLabel, "questions_complete")
-        questions_complete.setText(f"Questions Complete:\n{self.quiz_index}/{self.total_questions}")
+        questions_complete.setText(
+            f"Questions Complete:\n{self.quiz_index}/{self.total_questions}"
+        )
 
     def load_question(self):
         self._update_questions_mark()
@@ -452,7 +457,9 @@ class QuizHandler:
                 pass
             btn.setText(option)
             btn.setDisabled(False)
-            btn.clicked.connect(lambda _, o=option: self.check_answer(o, q, q["answer"]))
+            btn.clicked.connect(
+                lambda _, o=option: self.check_answer(o, q, q["answer"])
+            )
 
     def check_answer(self, selected, quiz_part, correct):
         if selected == correct:

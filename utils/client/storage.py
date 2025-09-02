@@ -181,7 +181,7 @@ def find_lesson(lesson_id):
                         str(quiz["question"]),
                         str(quiz["answer"]),
                         str(is_complete),
-                        lesson_type
+                        lesson_type,
                     )
             elif lesson_type == "quiz":
                 try:
@@ -197,6 +197,6 @@ def find_lesson(lesson_id):
                     str(lesson["author"]),
                     str(is_complete),
                     lesson["quiz"],
-                    lesson_type
+                    lesson_type,
                 )
     return None

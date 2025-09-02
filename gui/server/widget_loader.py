@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QTextEdit,
     QLabel,
-    QMessageBox
+    QMessageBox,
 )
 
 from network.server.network import get_local_ip_address
@@ -21,6 +21,7 @@ from utils.server.storage import (
     get_username,
 )
 from utils.server.admin import list_banned, ban_user, unban_user
+
 
 def _determine_l_page(self, ui, change_menu=True):
     msg_box = QMessageBox(self)
@@ -45,6 +46,7 @@ def _determine_l_page(self, ui, change_menu=True):
         change_page(self, ui.create_l_quiz, change_menu)
     else:
         print("Dialog closed")
+
 
 def init_lesson(self, all_texts):
     title: QLabel = self.findChild(QLabel, "title_p")
@@ -250,9 +252,7 @@ def get_widgets(self, ui):
     home_button.clicked.connect(
         lambda: change_page(self, ui.home_page, ui_name="home_page")
     )
-    create_lesson_page.clicked.connect(
-        lambda: _determine_l_page(self, ui, False)
-    )
+    create_lesson_page.clicked.connect(lambda: _determine_l_page(self, ui, False))
     ban_ip_b.clicked.connect(lambda: ban_ip_addr(self))
     unban_ip_b.clicked.connect(lambda: unban_ip_addr(self))
 
