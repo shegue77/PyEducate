@@ -28,10 +28,11 @@ Expanding functionality, customization, and security.
 
 ### 🎨 User Experience
 - [ ] Customization options for the GUI (themes, layouts)
+- [ ] Offline app documentation
 
 ### ⚙️ Functionality
 - [ ] Embed python interpreter into lessons
-- 🔄️ Expand lesson types
+- [x] Expand lesson types
 
 ### 🔐 Security Enhancements
 - [ ] Implement socket encryption for secure communication
