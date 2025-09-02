@@ -68,26 +68,27 @@ def attempt_connect_loop(server_ip, server_port, ip_type):
             sleep(10)
 
 
-try:
-    with open(join(get_appdata_path(), "connect-data.txt"), "rb") as f:
-        data = decrypt_file(f.read()).strip().split()
-        SERVER_IP = str(data[2])
-        IP_TYPE = str(data[1])
-        SERVER_PORT = int(data[0])
+def start_loop():
+    try:
+        with open(join(get_appdata_path(), "connect-data.txt"), "rb") as f:
+            data = decrypt_file(f.read()).strip().split()
+            server_ip = str(data[2])
+            ip_type = str(data[1])
+            server_port = int(data[0])
 
-    Thread(
-        target=attempt_connect_loop, args=(SERVER_IP, SERVER_PORT, IP_TYPE), daemon=True
-    ).start()
+        attempt_connect_loop(server_ip, server_port, ip_type)
 
-except FileNotFoundError as fe:
-    print(f"[!!] Connect data not found!\n{fe}")
+    except FileNotFoundError as fe:
+        print(f"[!!] Connect data not found!\n{fe}")
 
-except (ValueError, TypeError, IndexError) as ve:
-    print(f"[!!] Corrupted data!\n{ve}")
-    print(data)
-    file_path = join(get_appdata_path(), "connect-data.txt")
-    with open(file_path, "wb") as file:
-        file.write(encrypt_file(""))
+    except (ValueError, TypeError, IndexError) as ve:
+        print(f"[!!] Corrupted data!\n{ve}")
+        print(data)
+        file_path = join(get_appdata_path(), "connect-data.txt")
+        with open(file_path, "wb") as file:
+            file.write(encrypt_file(""))
+
+Thread(target=start_loop, daemon=True).start()
 
 # --------------------------------------------------------------------------------------------------
 
@@ -149,6 +150,14 @@ class MainWindow(QMainWindow):
         username_setting: str = self.findChild(QLineEdit, "user_setting").text()
         if ip_type_setting == "":
             ip_type_setting = "ipv4"
+        try:
+            connectmod.close_client()
+        except Exception:
+            pass
+
+        if not connectmod.is_connected():
+            Thread(target=start_loop, daemon=True).start()
+
 
         write_save_data(ip_setting, port_setting, ip_type_setting, username_setting)
 
