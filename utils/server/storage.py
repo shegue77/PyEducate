@@ -189,7 +189,7 @@ def del_lesson(id_input):
 
     for lesson in data["lessons"]:
         for id_num in str(lesson["id"]):
-            if id_num == str(id_input):
+            if str(id_num) == str(id_input):
                 data["lessons"].remove(lesson)
                 write_json(file_path, data)
                 print(f"Lesson with ID {id_num} is being deleted...")
@@ -198,7 +198,7 @@ def del_lesson(id_input):
 
     for lesson in data["lessons"]:
         for id_num in str(lesson["id"]):
-            existing_ids.append(id_num)
+            existing_ids.append(str(id_num))
 
     try:
         if int(id_input) not in existing_ids:

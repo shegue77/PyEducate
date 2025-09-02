@@ -1,6 +1,14 @@
 import sys
 from os.path import abspath, join
-from PySide6.QtWidgets import QMainWindow, QTextEdit, QLabel, QLineEdit, QPushButton
+from PySide6.QtWidgets import (
+    QMainWindow,
+    QTextEdit,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QWidget
+)
+
 from PySide6.QtCore import (
     QFile,
     QPropertyAnimation,
@@ -34,6 +42,8 @@ from network.server.server import (
     disconnect,
     show_clients_list,
 )
+
+from .quiz_lesson import QuizBuilder, QuizHandler
 
 # Loads all icons
 import gui.server.icons_loader
@@ -73,8 +83,55 @@ class MainWindow(QMainWindow):
 
         self.id_input = 1
 
+        # Load UI
         self._load_ui()
+
+        self.lesson_page_widget = self.findChild(QWidget, "lesson_editor")
+        self.lesson_page_index = self.stacked_widget.indexOf(self.lesson_page_widget)
+
+        # Map your UI widgets
+        self.quiz_widgets = {
+            "title": self.findChild(QLineEdit, "quiz_title_text"),
+            "q_amount": self.findChild(QLineEdit, "quiz_q_amount"),
+            "question": self.findChild(QLineEdit, "quiz_q_text_3"),
+            "options": [
+                self.findChild(QLineEdit, "quiz_op_1"),
+                self.findChild(QLineEdit, "quiz_op_2"),
+                self.findChild(QLineEdit, "quiz_op_3"),
+                self.findChild(QLineEdit, "quiz_op_4")
+            ],
+            "points": self.findChild(QLineEdit, "quiz_points_text"),
+            "next_button": self.findChild(QPushButton, "create_quiz_b")
+        }
+
+        # Create handler
+        self.quiz_handler = QuizHandler(self.quiz_widgets)
+
+        # Connect button
+        self.quiz_widgets["next_button"].clicked.connect(self.on_next_button_clicked)
         self._setup_sidebar()
+
+    def on_next_button_clicked(self):
+
+        # Option 2: start quiz on first click
+        if self.quiz_handler.current_index == 0:
+            total_questions = int(self.quiz_widgets["q_amount"].text())
+            self.quiz_handler.start(total_questions)
+            print(f"Starting quiz: {total_questions} questions")
+
+        # Save current question
+        done = self.quiz_handler.next_question()
+        print(f"Saved question {self.quiz_handler.current_index} of {self.quiz_handler.total_questions}")
+
+        if done:
+            # Last question entered → save lesson
+            builder = QuizBuilder()
+            builder.start(self.quiz_widgets["title"].text(), author="Unknown")
+            for q in self.quiz_handler.quiz_list:
+                builder.add_quiz(q["question"], q["options"], q["answer"], q["points"])
+            builder.save()
+            print("✅ All questions saved!")
+            self.stacked_widget.setCurrentIndex(self.lesson_page_index)
 
     def _get_client_list(self):
         client_list: QTextEdit = self.findChild(QTextEdit, "client_list")
@@ -246,6 +303,7 @@ class MainWindow(QMainWindow):
 
         # Set home page
         change_page(self, ui.home_page, False, ui_name="home_page")
+        return ui
 
     def _setup_sidebar(self):
         self.side_menu.setMinimumWidth(MENU_CONFIG["closed_width"])

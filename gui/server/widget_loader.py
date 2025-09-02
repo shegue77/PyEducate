@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QTextEdit,
     QLabel,
+    QMessageBox
 )
 
 from network.server.network import get_local_ip_address
@@ -21,6 +22,29 @@ from utils.server.storage import (
 )
 from utils.server.admin import list_banned, ban_user, unban_user
 
+def _determine_l_page(self, ui, change_menu=True):
+    msg_box = QMessageBox(self)
+    msg_box.setWindowTitle("Create lesson")
+    msg_box.setText("<b>Select lesson type</b>")
+    msg_box.setContentsMargins(20, 20, 20, 20)
+    msg_box.setIcon(QMessageBox.Question)
+
+    msg_box.setStandardButtons(QMessageBox.Cancel)
+
+    option1 = msg_box.addButton("Lesson", QMessageBox.ActionRole)
+    option2 = msg_box.addButton("Quiz", QMessageBox.ActionRole)
+
+    result = msg_box.exec()
+
+    clicked = msg_box.clickedButton()
+    if result == QMessageBox.Cancel:
+        print("User pressed Cancel ❌")
+    elif clicked == option1:
+        change_page(self, ui.create_lesson_page, change_menu)
+    elif clicked == option2:
+        change_page(self, ui.create_l_quiz, change_menu)
+    else:
+        print("Dialog closed")
 
 def init_lesson(self, all_texts):
     title: QLabel = self.findChild(QLabel, "title_p")
@@ -227,7 +251,7 @@ def get_widgets(self, ui):
         lambda: change_page(self, ui.home_page, ui_name="home_page")
     )
     create_lesson_page.clicked.connect(
-        lambda: change_page(self, ui.create_lesson_page, False)
+        lambda: _determine_l_page(self, ui, False)
     )
     ban_ip_b.clicked.connect(lambda: ban_ip_addr(self))
     unban_ip_b.clicked.connect(lambda: unban_ip_addr(self))

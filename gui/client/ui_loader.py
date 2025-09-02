@@ -108,7 +108,7 @@ class MainWindow(QMainWindow):
         self._load_ui()
         self._setup_sidebar()
 
-    def _show_lesson_page(self, ui, change_menu=True):
+    def _show_lesson_page(self, ui, change_menu: bool = True):
         change_page(self, ui.lessons_page, change_menu=change_menu)
         previous_page, next_page, total_pages = init_lesson_page(self, ui)
 

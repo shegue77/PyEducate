@@ -1,6 +1,7 @@
 from json import JSONDecodeError
 from os.path import join, dirname, abspath
 from os import makedirs
+from random import shuffle
 
 from PySide6.QtWidgets import QPushButton, QLabel, QTextEdit
 
@@ -90,6 +91,7 @@ def press_button(self, id_l, max_points=0.0):
 
 
 def init_lesson(self, lesson, ui):
+    lesson_type = lesson.get("type", "lesson")
 
     def _submit_lesson():
         submit.setDisabled(True)
@@ -104,31 +106,37 @@ def init_lesson(self, lesson, ui):
         submit.setDisabled(False)
         init_lesson_page(self, ui)
 
-    options_text = ""
-    for quiz in lesson["quiz"]:  # Loop over the quiz list
-        options_text = quiz["question"]
+    if lesson_type == "lesson":
+        options_text = ""
+        for quiz in lesson["quiz"]:  # Loop over the quiz list
+            options_text = quiz["question"]
 
-    self.findChild(QLabel, "ltl_title").setText(str(lesson["title"]))
-    self.findChild(QLabel, "ltl_subtitle").setText(str(lesson["description"]))
+        self.findChild(QLabel, "ltl_title").setText(str(lesson["title"]))
+        self.findChild(QLabel, "ltl_subtitle").setText(str(lesson["description"]))
 
-    self.findChild(QLabel, "ltl_desc").setText(
-        str(lesson["content"].replace("\\n", "\n"))
-    )
-    self.findChild(QLabel, "ltl_l_task").setText("Lesson Task: " + str(options_text))
-    submit = self.findChild(QPushButton, "ltl_submit")
-    submit.setStyleSheet(
-        "padding: 10px; background-color: #040f13; border-radius: 10px;"
-    )
+        self.findChild(QLabel, "ltl_desc").setText(
+            str(lesson["content"].replace("\\n", "\n"))
+        )
+        self.findChild(QLabel, "ltl_l_task").setText("Lesson Task: " + str(options_text))
+        submit = self.findChild(QPushButton, "ltl_submit")
+        submit.setStyleSheet(
+            "padding: 10px; background-color: #040f13; border-radius: 10px;"
+        )
 
-    self.stacked_widget.setCurrentWidget(ui.l_type_lesson)
-    print("set lesson page")
+        self.stacked_widget.setCurrentWidget(ui.l_type_lesson)
+        print("set lesson page")
 
-    # Disconnect all slots from this button's clicked signal
-    try:
-        submit.clicked.disconnect()
-    except Exception:
-        pass  # No connections yet
-    submit.clicked.connect(_submit_lesson)
+        # Disconnect all slots from this button's clicked signal
+        try:
+            submit.clicked.disconnect()
+        except Exception:
+            pass  # No connections yet
+        submit.clicked.connect(_submit_lesson)
+    else:
+        self.findChild(QLabel, "ltl_title_2").setText(str(lesson["title"]))
+        self.findChild(QLabel, "quiz_author").setText(str(lesson["author"]))
+        self.stacked_widget.setCurrentWidget(ui.l_type_quiz)
+        QuizHandler(self, ui, lesson)
 
 
 def _get_lessons_for_page(page_number):
@@ -308,26 +316,41 @@ def init_lesson_page(self, ui):
         if lesson is not None:
             lesson_data = find_lesson(lesson)
             try:
-                labels[idx].setText(
-                    f"{lesson_data[1]}\n{lesson_data[3]}\nID: {lesson_data[0]}\nCompleted: {lesson_data[7]}"
-                )
-            except IndexError as ie:
-                log_error(ie)
-                labels[idx].setText("Error loading lesson!")
-                return None
+                if lesson_data[8] == "lesson":
+                    try:
+                        labels[idx].setText(
+                            f"{lesson_data[1]}\n{lesson_data[3]}\nID: {lesson_data[0]}\nCompleted: {lesson_data[7]}\nType: {lesson_data[8]}"
+                        )
+                    except IndexError as ie:
+                        log_error(ie)
+                        labels[idx].setText("Error loading lesson!")
+                        return None
+            except IndexError:
+                try:
+                    labels[idx].setText(
+                        f"{lesson_data[1]}\nAuthor: {lesson_data[2]}\nID: {lesson_data[0]}\nCompleted: {lesson_data[3]}\nType: {lesson_data[5]}"
+                    )
+                except IndexError as ie:
+                    log_error(ie)
+                    labels[idx].setText("Error loading lesson!")
+                    return None
 
             buttons[idx].setText("Start lesson")
             buttons[idx].setDisabled(False)
+
+            lesson_data = find_lesson(lesson)
+            try:
+                is_completed = lesson_data[7]
+            except IndexError:
+                is_completed = lesson_data[3]
+            if str(is_completed) == "True":
+                buttons[idx].setDisabled(True)
+                buttons[idx].setText("Lesson complete")
+
         else:
             labels[idx].setText("Placeholder")
             buttons[idx].setText("Placeholder")
             buttons[idx].setDisabled(True)
-
-        if lesson is not None:
-            lesson_data = find_lesson(lesson)
-            if str(lesson_data[7]) == "True":
-                buttons[idx].setDisabled(True)
-                buttons[idx].setText("Lesson complete")
 
     if total_pages is None:
         total_pages = 1
@@ -358,3 +381,105 @@ def init_lesson_page(self, ui):
             )
 
     return buttons[-2], buttons[-1], total_pages
+
+# ------------- Quiz Handler -------------
+class QuizHandler:
+    def __init__(self, main, ui, lesson):
+        self.main = main
+        self.ui = ui
+        self.lesson = lesson
+        self.quiz_index = 0
+        self.total_questions = len(lesson["quiz"])
+        self.option_buttons = [
+            main.findChild(QPushButton, f"ltl_option_{i+1}") for i in range(4)
+        ]
+        self.question = main.findChild(QLabel, "ltl_question_2")
+        self.total_points = 0.0
+
+        # Shuffle options each question
+        for btn in self.option_buttons:
+            try:
+                btn.clicked.disconnect()
+            except Exception:
+                pass
+
+        self.load_question()
+
+    def _update_points(self):
+        points, lessons_completed = get_points_data()
+
+        file_path = join(get_appdata_path(), "lessons.json")
+        data = load_json(file_path)
+
+        for idx, lsn in enumerate(data["lessons"]):
+            if int(lsn["id"]) == int(self.lesson["id"]):
+                data["lessons"][idx]["points_given"] = str(self.total_points)
+                write_json(file_path, data)
+                break
+
+        lessons_completed += 1
+        print("Points: " + str(self.total_points))
+
+        file_path = str(join(get_appdata_path(), "SAVE_DATA.dat"))
+        with open(file_path, "wb") as file:
+            write_data = f"{str(self.total_points)} {str(lessons_completed)}"
+            file.write(encrypt_file(write_data))
+        self.total_points = 0.0
+        print("Point data saved successfully")
+
+    def _update_questions_mark(self):
+        questions_complete = self.main.findChild(QLabel, "questions_complete")
+        questions_complete.setText(f"Questions Complete:\n{self.quiz_index}/{self.total_questions}")
+
+    def load_question(self):
+        self._update_questions_mark()
+        if self.quiz_index >= self.total_questions:
+            # Quiz finished, mark lesson complete & give points
+            self.mark_quiz_complete()
+            self._update_points()
+            return
+        q = self.lesson["quiz"][self.quiz_index]
+        self.question.setText(str(q["question"]))
+
+        # Shuffle options
+        self.current_options = q["options"][:]
+        shuffle(self.current_options)
+
+        for btn, option in zip(self.option_buttons, self.current_options):
+            try:
+                btn.clicked.disconnect()
+            except Exception:
+                pass
+            btn.setText(option)
+            btn.setDisabled(False)
+            btn.clicked.connect(lambda _, o=option: self.check_answer(o, q, q["answer"]))
+
+    def check_answer(self, selected, quiz_part, correct):
+        if selected == correct:
+            print("Correct!")
+            try:
+                self.total_points += float(quiz_part["points"])
+            except TypeError as te:
+                log_error(te)
+
+        else:
+            print("Wrong!")
+
+        # Disable buttons
+        for btn in self.option_buttons:
+            btn.setDisabled(True)
+
+        self.quiz_index += 1
+        self.load_question()
+
+    def mark_quiz_complete(self):
+        print(f"Quiz for lesson {self.lesson['id']} completed.")
+        # Update root JSON
+        file_path = join(get_appdata_path(), "lessons.json")
+        data = load_json(file_path)
+        for idx, lsn in enumerate(data["lessons"]):
+            if int(lsn["id"]) == int(self.lesson["id"]):
+                data["lessons"][idx]["completed"] = "True"
+                write_json(file_path, data)
+                break
+        init_lesson_page(self.main, self.ui)

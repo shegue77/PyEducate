@@ -34,7 +34,6 @@ def mark_lesson_finish(lesson_id):
         print(fe)
         print()
         makedirs(join(get_appdata_path(), "images"), exist_ok=True)
-
         data = {"lessons": []}
         write_json(file_path, data)
         return None
@@ -157,21 +156,47 @@ def find_lesson(lesson_id):
     for lesson in data["lessons"]:
         if int(lesson["id"]) == int(lesson_id):
             try:
-                is_complete = str(lesson["completed"])
+                lesson_type = lesson["type"]
+            except Exception:
+                lesson_type = "lesson"
+            if lesson_type == "lesson":
+                try:
+                    is_complete = str(lesson["completed"])
 
-            except Exception as e:
-                log_error(e)
-                is_complete = "False"
+                except Exception as e:
+                    log_error(e)
+                    is_complete = "False"
 
-            for quiz in lesson["quiz"]:  # Loop over the quiz list
+                for quiz in lesson["quiz"]:  # Loop over the quiz list
+                    try:
+                        str(lesson["image"])
+                    except KeyError:
+                        lesson["image"] = ""
+                    return (
+                        str(lesson["id"]),
+                        str(lesson["title"]),
+                        str(lesson["image"]),
+                        str(lesson["description"]),
+                        str(lesson["content"]),
+                        str(quiz["question"]),
+                        str(quiz["answer"]),
+                        str(is_complete),
+                        lesson_type
+                    )
+            elif lesson_type == "quiz":
+                try:
+                    is_complete = str(lesson["completed"])
+
+                except Exception as e:
+                    log_error(e)
+                    is_complete = "False"
+
                 return (
                     str(lesson["id"]),
                     str(lesson["title"]),
-                    str(lesson["image"]),
-                    str(lesson["description"]),
-                    str(lesson["content"]),
-                    str(quiz["question"]),
-                    str(quiz["answer"]),
+                    str(lesson["author"]),
                     str(is_complete),
+                    lesson["quiz"],
+                    lesson_type
                 )
     return None
