@@ -9,10 +9,14 @@ server_path = "server.py"
 client_path = "client.py"
 
 print(
-    system(f'pyinstaller {server_path} --windowed --add-data "gui/server;gui/server" --add-data "site/*;site"')
+    system(
+        f'pyinstaller {server_path} --windowed --add-data "gui/server;gui/server" --add-data "site/*;site"'
+    )
 )
 print(
-    system(f'pyinstaller {client_path} --windowed --add-data "gui/client;gui/client" --add-data "site/*;site"')
+    system(
+        f'pyinstaller {client_path} --windowed --add-data "gui/client;gui/client" --add-data "site/*;site"'
+    )
 )
 
 for part in dist_parts:
