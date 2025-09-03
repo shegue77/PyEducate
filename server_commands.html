@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="img/favicon.ico" />
+    <title>Server Commands - PyEducate Documentation</title>
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Server Commands";
+        var mkdocs_page_input_path = "server_commands.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="index.html" class="icon icon-home"> PyEducate Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="index.html">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="why_use_pyeducate.html">Why Use PyEducate?</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="features.html">Features</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="How-It-Works.html">How It Works</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Server Commands</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#client-number">Client Number</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#general-commands">General Commands</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#client-information">Client Information</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#leaderboard-lessons">Leaderboard &amp; Lessons</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#client-management">Client Management</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#notes">Notes</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="Packaging.html">Packaging</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="roadmap.html">Roadmap</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="Screenshots.html">Screenshots</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="FAQ.html">FAQ</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyEducate Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html" class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Server Commands</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="server-commands-list">Server Commands List</h1>
+<h2 id="client-number">Client Number</h2>
+<table>
+<thead>
+<tr>
+<th>Client Number</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td>Broadcasts command to all clients.</td>
+</tr>
+<tr>
+<td><code>1+</code></td>
+<td>Sends command to selected client (from client list).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>ℹ️ If command does not run, please try not using client numbers (if applicable).</strong></p>
+<h2 id="general-commands">General Commands</h2>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>!help</code></td>
+<td>Opens the help list.</td>
+</tr>
+<tr>
+<td><code>!info</code></td>
+<td>Shows server information.</td>
+</tr>
+<tr>
+<td><code>!version</code></td>
+<td>Displays the current version of the application.</td>
+</tr>
+<tr>
+<td><code>!license</code></td>
+<td>Shows the license information.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="client-information">Client Information</h2>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>!getip</code></td>
+<td>Retrieves the public IPv4 address of client(s).</td>
+</tr>
+<tr>
+<td><code>!gethostname</code></td>
+<td>Retrieves the hostname of client(s).</td>
+</tr>
+<tr>
+<td><code>!getusername</code></td>
+<td>Retrieves the username of client(s).</td>
+</tr>
+</tbody>
+</table>
+<h2 id="leaderboard-lessons">Leaderboard &amp; Lessons</h2>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>!getstats</code></td>
+<td>Retrieves leaderboard data for client(s).</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>!updateboard [path]</code></td>
+<td>Parses and sends leaderboard data of the top 10 from a JSON file.</td>
+<td><code>!updateboard leaderboards.json</code></td>
+</tr>
+<tr>
+<td><code>!sendlesson &lt;lesson_ID&gt; [path]</code></td>
+<td>Sends specific lesson(s) to client(s) from a JSON file.</td>
+<td><code>!sendlesson [2] lessons.json</code><br><code>!sendlesson [1,3,4] lessons.json</code></td>
+</tr>
+<tr>
+<td><code>!sendjson [path]</code></td>
+<td>Sends a JSON file containing all lessons to client(s).</td>
+<td><code>!sendjson lessons.json</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="client-management">Client Management</h2>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>!showblacklist</code></td>
+<td>Displays all banned IP addresses.</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>!ban &lt;IP_ADDRESS&gt; [reason] [severity]</code></td>
+<td>Bans an IP from connecting.</td>
+<td><code>!ban 127.0.0.1 port_scanning high</code></td>
+</tr>
+<tr>
+<td><code>!unban &lt;IP_ADDRESS&gt;</code></td>
+<td>Removes a ban from an IP.</td>
+<td><code>!unban 127.0.0.1</code></td>
+</tr>
+<tr>
+<td><code>!disconnect</code></td>
+<td>Disconnects client(s).</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>!shutdown</code></td>
+<td>Safely disconnects all clients and shuts down the server. Use with caution.</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h2 id="notes">Notes</h2>
+<ul>
+<li>Arguments in <code>&lt; &gt;</code> are <strong>required</strong>.  </li>
+<li>Arguments in <code>[ ]</code> are <strong>optional</strong>.</li>
+</ul>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="Installation.html" class="btn btn-neutral float-left" title="Installation"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="Packaging.html" class="btn btn-neutral float-right" title="Packaging">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="Installation.html" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="Packaging.html" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = ".";</script>
+    <script src="js/theme_extra.js"></script>
+    <script src="js/theme.js"></script>
+      <script src="search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
