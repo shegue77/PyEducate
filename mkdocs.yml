@@ -1,0 +1,17 @@
+site_name: PyEducate Documentation
+site_dir: site
+theme:
+  name: readthedocs
+
+use_directory_urls: false
+nav:
+  - Home: index.md
+  - Why Use PyEducate?: why_use_pyeducate.md
+  - Features: features.md
+  - How It Works: How-It-Works.md
+  - Installation: Installation.md
+  - Server Commands: server_commands.md
+  - Packaging: Packaging.md
+  - Roadmap: roadmap.md
+  - Screenshots: Screenshots.md
+  - FAQ: FAQ.md
