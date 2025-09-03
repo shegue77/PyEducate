@@ -43,7 +43,7 @@ def _determine_l_page(self, ui, change_menu=True):
     elif clicked == option1:
         change_page(self, ui.create_lesson_page, change_menu)
     elif clicked == option2:
-        change_page(self, ui.create_l_quiz, change_menu)
+        change_page(self, ui.create_l_quiz, change_menu, ui_name="create_l_quiz")
     else:
         print("Dialog closed")
 
@@ -196,6 +196,21 @@ def change_page(self, page, change_menu: bool = True, ui_name=None):
                 )
         elif ui_name == "admin_page":
             load_admin_page(self)
+        elif ui_name == "create_l_quiz":
+            for text in self.quiz_widgets.values():
+                if isinstance(text, QLineEdit):
+                    text.setText("")
+                if isinstance(text, list):
+                    for option in text:
+                        option.setText("")
+
+
+def view_docs():
+    from webbrowser import open_new_tab
+    from pathlib import Path
+
+    filename = (Path.cwd() / "site" / "index.html").as_uri()
+    open_new_tab(filename)
 
 
 def get_widgets(self, ui):
@@ -238,6 +253,8 @@ def get_widgets(self, ui):
 
     ban_ip_b: QPushButton = self.findChild(QPushButton, "ban_ip_b")
     unban_ip_b: QPushButton = self.findChild(QPushButton, "unban_ip_b")
+
+    self.findChild(QPushButton, "view_docs_b").clicked.connect(view_docs)
 
     # Connect buttons
     server_panel.clicked.connect(lambda: change_page(self, ui.server_panel))

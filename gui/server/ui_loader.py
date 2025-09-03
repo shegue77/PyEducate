@@ -89,7 +89,6 @@ class MainWindow(QMainWindow):
         self.lesson_page_widget = self.findChild(QWidget, "lesson_editor")
         self.lesson_page_index = self.stacked_widget.indexOf(self.lesson_page_widget)
 
-        # Map your UI widgets
         self.quiz_widgets = {
             "title": self.findChild(QLineEdit, "quiz_title_text"),
             "q_amount": self.findChild(QLineEdit, "quiz_q_amount"),
@@ -112,6 +111,8 @@ class MainWindow(QMainWindow):
         self._setup_sidebar()
 
     def on_next_button_clicked(self):
+        self.quiz_widgets["title"].setDisabled(True)
+        self.quiz_widgets["q_amount"].setDisabled(True)
 
         # Option 2: start quiz on first click
         if self.quiz_handler.current_index == 0:
@@ -134,6 +135,8 @@ class MainWindow(QMainWindow):
             builder.save()
             print("✅ All questions saved!")
             self.stacked_widget.setCurrentIndex(self.lesson_page_index)
+            self.quiz_widgets["title"].setEnabled(True)
+            self.quiz_widgets["q_amount"].setEnabled(True)
 
     def _get_client_list(self):
         client_list: QTextEdit = self.findChild(QTextEdit, "client_list")

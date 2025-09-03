@@ -216,6 +216,14 @@ def change_page(self, page, change_menu: bool = True, ui_name=None):
             init_leaderboard(self)
 
 
+def view_docs():
+    from webbrowser import open_new_tab
+    from pathlib import Path
+
+    filename = (Path.cwd() / "site" / "index.html").as_uri()
+    open_new_tab(filename)
+
+
 def get_widgets(self, ui):
     stacked_widget = self.findChild(QStackedWidget, "stackedWidget")
     side_menu = self.findChild(QFrame, "side_menu")
@@ -236,5 +244,6 @@ def get_widgets(self, ui):
     self.findChild(QPushButton, "about_button").clicked.connect(
         lambda: change_page(self, ui.about_page)
     )
+    self.findChild(QPushButton, "view_docs_b").clicked.connect(view_docs)
 
-    return (stacked_widget, side_menu, menu_btn, lesson_page, import_lessons_b)
+    return stacked_widget, side_menu, menu_btn, lesson_page, import_lessons_b

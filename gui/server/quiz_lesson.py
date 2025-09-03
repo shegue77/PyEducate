@@ -44,7 +44,8 @@ class QuizBuilder:
         # Save lesson to JSON and add signature.
         self.lesson["type"] = "quiz"
         lesson_copy = dict(self.lesson)
-        lesson_id = lesson_copy.pop("id")
+        lesson_copy.pop("id")
+        lesson_copy.pop("signature")
         signature = get_signature(dumps(lesson_copy))
         self.lesson["signature"] = signature
 

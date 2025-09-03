@@ -69,7 +69,6 @@ def press_button(self, id_l, max_points=0.0):
         self.lesson_attempt = 1
         lesson["completed"] = "True"
         lesson["points_given"] = str(points_given)
-        print(lesson)
 
         write_json(file_path, data)
 
