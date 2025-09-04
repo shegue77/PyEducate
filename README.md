@@ -14,12 +14,6 @@
 
 ---
 
-> ⚠️ **IMPORTANT NOTICE**
-> 
-> There may be some breaking changes on the `main` branch. Please keep yourself updated and look out for more information.
-
----
-
 ## 🚀 Installation
 
 ---
