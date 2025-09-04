@@ -2,7 +2,7 @@ from json import loads, JSONDecodeError
 from os.path import join
 from utils.client.paths import get_appdata_path
 from utils.client.logger import log_error
-from utils.crypto import decrypt_file, encrypt_file
+from utils.crypto import encrypt_file, decrypt_message
 from utils.client.storage import load_json, write_json
 
 
@@ -40,7 +40,7 @@ def _get_json_file(new_lessons):
 
 
 # Downloads the lesson from the server (host).
-def download_file(client_r, mode, end_marker):
+def download_file(client_r, mode, end_marker, sym_key):
 
     print("Listening for data...")
 
@@ -50,7 +50,7 @@ def download_file(client_r, mode, end_marker):
         file_path = join(get_appdata_path(), "temp-leaderboards.json")
 
     file = open(file_path, "wb")
-    file_bytes = b""
+    file_bytes = ""
 
     while True:
         if file_bytes[-len(end_marker) :] == bytes(end_marker):
@@ -58,9 +58,9 @@ def download_file(client_r, mode, end_marker):
             break
 
         print("Receiving data")
-        data = client_r.recv(1024)
+        data = decrypt_message(client_r.recv(1024), sym_key)
 
-        if file_bytes[-34:] == bytes(end_marker):
+        if file_bytes[-34:].encode() == bytes(end_marker):
             file_bytes = file_bytes[:-34]
             print("Updated")
             break
@@ -72,8 +72,7 @@ def download_file(client_r, mode, end_marker):
     file.write(encrypt_file(file_bytes))
     file.close()
 
-    ciphertext = open(file_path, "rb").read()
-    lesson = decrypt_file(ciphertext)
+    lesson = file_bytes
 
     if mode == "json":
         _get_json_file(lesson)

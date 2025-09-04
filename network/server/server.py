@@ -5,10 +5,13 @@
 import socket
 from threading import Thread
 from os.path import join
+
+import rsa
 from schedule import every, run_pending
 
 from PySide6.QtWidgets import QTextEdit
 
+from utils.crypto import generate_random_key, encrypt_message, decrypt_message
 from utils.server.paths import get_appdata_path
 from utils.server.logger import log_error
 from utils.server.admin import ban_user, unban_user, check_if_banned, list_banned
@@ -23,6 +26,7 @@ from network.server.network import get_local_ip_address, validate_ip
 # -------------------------[ GLOBAL VARIABLES ]-------------------------
 app_version = "v2.0.1"
 clients: dict = {}  # Keeps track of clients
+client_keys: dict = {}  # Keeps track of client symmetric keys.
 server = None
 usernames: dict = {}  # Keeps track of usernames of clients
 active_threads: list = []  # Keeps track of (most) active threads.
@@ -32,33 +36,50 @@ END_MARKER = (
     # MAKE SURE this does NOT appear at all in your JSON file.
     # MAKE SURE that this end marker MATCHES the end marker on the client.
 )
+pub_key = None
+priv_key = None
 # ----------------------------------------------------------------------
 
 
 # Function to handle each connected client
 def handle_client(client_socket, addr, self):
     if check_if_banned(addr):
-        client_socket.send("!disconnect".encode())
+        try:
+            client_socket.send("!disconnect".encode())
+        except Exception as e:
+            log_error(e)
         client_socket.close()
         clients.pop(addr, None)
         usernames.pop(addr, None)
+        client_keys.pop(addr, None)
         return None
 
     clients[addr] = client_socket
 
     server_output: QTextEdit = self.findChild(QTextEdit, "server_output")
 
+    # Receive client public key (RSA)
+    public_client = rsa.PublicKey.load_pkcs1(client_socket.recv(1024))
+
+    # Send symmetric AES Fernet key
+    sym_key = generate_random_key()
+    client_socket.send(rsa.encrypt(sym_key, public_client))
+
+    # Map symmetric client to client's IP address
+    client_keys[addr] = sym_key
+    print(f"Symmetric key (sent): {sym_key}")
+    del sym_key
+    print(f"Dict key (stored): {client_keys[addr]}\nType: {type(client_keys[addr])}")
+
     print(f"[!] {addr[0]} connected.")
     server_output.append(f"[!] {addr[0]} connected.")
 
-    try:
-        client_socket.sendall("!getusername".encode())
-    except Exception as er:
-        log_error(er)
+    client_socket.sendall(encrypt_message("!getusername", client_keys[addr]))
 
     while True:
         try:
-            response = client_socket.recv(4096).decode().strip().lower()
+            response = client_socket.recv(4096)
+            response = decrypt_message(response, client_keys[addr]).strip().lower()
             if not response:
                 break
 
@@ -85,15 +106,20 @@ def handle_client(client_socket, addr, self):
     server_output.append(f"[!] Client {addr[0]} disconnected.")
     client_socket.close()
     del clients[addr]
+    client_keys.pop(addr, None)
     usernames.pop(addr, None)
+    return None
 
 
 # Stops the server
 def disconnect():
     global server
 
-    for client in clients.values():
-        client.send("!disconnect".encode())
+    for client, target_addr in zip(clients.values(), clients.keys()):
+        try:
+            client.send(encrypt_message("!disconnect", client_keys[target_addr]))
+        except Exception as e:
+            log_error(e)
         client.close()
 
     try:
@@ -109,6 +135,10 @@ def disconnect():
 # Starts the server and listens for clients.
 def start_server(host, port, self, server_type="ipv4"):
     global server
+    global pub_key
+    global priv_key
+    pub_key, priv_key = rsa.newkeys(1024)
+
     server_output: QTextEdit = self.findChild(QTextEdit, "server_output")
     server_output.setText("")
 
@@ -260,7 +290,7 @@ def process_command(self, server_data, command, choice):
 
         elif command.startswith("!updateboard"):
 
-            for client in clients.values():
+            for client, target_addr in zip(clients.values(), clients.keys()):
                 try:
                     file_path_json = command.split(" ")[1]
 
@@ -271,11 +301,13 @@ def process_command(self, server_data, command, choice):
                     file_path_json = join(get_appdata_path(), "leaderboards.json")
                     log_error(er)
 
-                client.sendall(str("!updateboard").encode())
+                client.sendall(
+                    encrypt_message("!updateboard".encode(), client_keys[target_addr])
+                )
 
                 thread = Thread(
                     target=send_leaderboard,
-                    args=(client, file_path_json, END_MARKER),
+                    args=(client, file_path_json, END_MARKER, client_keys[target_addr]),
                 )
 
                 thread.start()
@@ -283,7 +315,7 @@ def process_command(self, server_data, command, choice):
                 server_output.append("\n[*] Updated leaderboard")
 
         elif command.startswith("!sendjson") or command.startswith("!sendlesson"):
-            for client in clients.values():
+            for client, target_addr in zip(clients.values(), clients.keys()):
                 if command.startswith("!sendjson"):
                     try:
                         file_path_json = command.split(" ")[1]
@@ -315,16 +347,25 @@ def process_command(self, server_data, command, choice):
                         file_path_json = join(get_appdata_path(), "lessons.json")
                         log_error(er)
 
-                client.sendall(str("!sendjson").encode())
+                client.sendall(
+                    encrypt_message("!sendjson".encode(), client_keys[target_addr])
+                )
 
                 if command.startswith("!sendjson"):
                     thread = Thread(
-                        target=send_json, args=(client, file_path_json, END_MARKER)
+                        target=send_json,
+                        args=(client, file_path_json, END_MARKER, client_keys[target_addr]),
                     )
                 else:
                     thread = Thread(
                         target=send_json,
-                        args=(client, file_path_json, END_MARKER, lesson_id),
+                        args=(
+                            client,
+                            file_path_json,
+                            END_MARKER,
+                            client_keys[target_addr],
+                            lesson_id,
+                        ),
                     )
 
                 thread.start()
@@ -357,12 +398,12 @@ def process_command(self, server_data, command, choice):
 
         elif command.startswith("!getstats"):
             server_output.append("[*] Updating stats...")
-            for client in clients.values():
-                client.sendall(command.encode())
+            for client, target_addr in zip(clients.values(), clients.keys()):
+                client.sendall(encrypt_message(command.encode(), client_keys[target_addr]))
 
         else:
-            for client in clients.values():
-                client.sendall(command.encode())
+            for client, target_addr in zip(clients.values(), clients.keys()):
+                client.sendall(encrypt_message(command.encode(), client_keys[target_addr]))
 
     elif 0 <= choice < len(clients):
         target_addr = list(clients.keys())[choice]
@@ -400,12 +441,19 @@ def process_command(self, server_data, command, choice):
                     file_path_json = join(get_appdata_path(), "lessons.json")
                     log_error(er)
 
-            clients[target_addr].sendall(str("!sendjson").encode())
+            clients[target_addr].sendall(
+                encrypt_message("!sendjson".encode(), client_keys[clients[target_addr]])
+            )
 
             if command.startswith("!sendjson"):
                 thread = Thread(
                     target=send_json,
-                    args=(clients[target_addr], file_path_json, END_MARKER),
+                    args=(
+                        clients[target_addr],
+                        file_path_json,
+                        END_MARKER,
+                        client_keys[clients[target_addr]],
+                    ),
                 )
             else:
                 thread = Thread(
@@ -413,8 +461,9 @@ def process_command(self, server_data, command, choice):
                     args=(
                         clients[target_addr],
                         file_path_json,
-                        lesson_id,
                         END_MARKER,
+                        client_keys[clients[target_addr]],
+                        lesson_id,
                     ),
                 )
 
@@ -433,11 +482,20 @@ def process_command(self, server_data, command, choice):
                 file_path_json = join(get_appdata_path(), "leaderboards.json")
                 log_error(er)
 
-            clients[target_addr].sendall(str("!updateboard").encode())
+            clients[target_addr].sendall(
+                encrypt_message(
+                    "!updateboard".encode(), client_keys[clients[target_addr]]
+                )
+            )
 
             thread = Thread(
                 target=send_leaderboard,
-                args=(clients[target_addr], file_path_json, END_MARKER),
+                args=(
+                    clients[target_addr],
+                    file_path_json,
+                    END_MARKER,
+                    client_keys[clients[target_addr]],
+                ),
             )
 
             thread.start()
@@ -502,10 +560,14 @@ def process_command(self, server_data, command, choice):
 
         elif command.startswith("!getstats"):
             server_output.append("[*] Updating stats...")
-            clients[target_addr].sendall(command.encode())
+            clients[target_addr].sendall(
+                encrypt_message(command.encode(), client_keys[clients[target_addr]])
+            )
 
         else:
-            clients[target_addr].sendall(command.encode())
+            clients[target_addr].sendall(
+                encrypt_message(command.encode(), client_keys[clients[target_addr]])
+            )
 
     else:
         print("[!] Invalid selection.")

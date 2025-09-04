@@ -102,7 +102,6 @@ class MainWindow(QMainWindow):
             "points": self.findChild(QLineEdit, "quiz_points_text"),
             "next_button": self.findChild(QPushButton, "create_quiz_b"),
         }
-
         # Create handler
         self.quiz_handler = QuizHandler(self.quiz_widgets)
 

@@ -71,11 +71,28 @@ def _write_key() -> bytes:
     return key
 
 
+def generate_random_key() -> bytes:
+    return Fernet.generate_key()
+
+
 def load_or_create_key():
     key_str = get_password(SERVICE_NAME, KEY_NAME)
     if key_str is None:
         return _write_key()
     return key_str.encode()
+
+
+def encrypt_message(message, key: bytes) -> bytes:
+    f = Fernet(key)
+    if isinstance(message, bytes):
+        return f.encrypt(message)
+    else:
+        return f.encrypt(message.encode("utf-8"))
+
+
+def decrypt_message(enc_bytes: bytes, key: bytes) -> str:
+    f = Fernet(key)
+    return f.decrypt(enc_bytes).decode("utf-8")
 
 
 def encrypt_file(message) -> bytes:

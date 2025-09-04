@@ -8,10 +8,11 @@ from threading import Event
 from os.path import join
 from requests import get
 
+import rsa
 from utils.client.paths import get_appdata_path
 from utils.client.logger import log_error
 from .storage import download_file
-from utils.crypto import decrypt_file, encrypt_file
+from utils.crypto import decrypt_file, encrypt_message, decrypt_message
 
 # ----------------------------------------------------------------------
 
@@ -21,12 +22,18 @@ client = None
 END_MARKER = b"<<<<<<<erjriefjgjrffjdgo>>>>>>>>>>"  # End marker used when receiving JSON files, make sure that this end marker MATCHES the end marker on the server.
 id_amount = 1
 connected_to_server = Event()
+pub_key = None
+priv_key = None
+sym_key = None
 # ----------------------------------------------------------------------
 
 
 # Connects to the server (host).
 def start_client(server_ip, server_port, server_type="ipv4"):
     global client
+    global pub_key, priv_key, sym_key
+
+    pub_key, priv_key = rsa.newkeys(1024)
     if server_type == "ipv6":
         client = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
     else:
@@ -35,48 +42,60 @@ def start_client(server_ip, server_port, server_type="ipv4"):
     client.connect((server_ip, server_port))
     connected_to_server.set()
 
+    # Send public key (RSA)
+    client.send(pub_key.save_pkcs1("PEM"))
+
+    # Recieve symmetric AES Fernet key
+    sym_key = rsa.decrypt(client.recv(1024), priv_key)
+
     while True:
-        command = client.recv(32).decode().strip().lower()
+        command = decrypt_message(client.recv(1024), sym_key).strip().lower()
         print(f"[Received Command] {command}")
 
         if command == "!disconnect":
             break
 
         if command == "!sendjson":
-            download_file(client, "json", END_MARKER)
+            download_file(client, "json", END_MARKER, sym_key)
 
         elif command == "!updateboard":
-            download_file(client, "board", END_MARKER)
+            download_file(client, "board", END_MARKER, sym_key)
 
         elif command == "!getip":
             try:
                 response = get("https://api64.ipify.org?format=json", timeout=5).json()
-                client.sendall(response["ip"].encode())
+                client.sendall(encrypt_message(response["ip"].encode(), sym_key))
 
             except Exception as e:
                 log_error(e)
-                client.sendall("Error retrieving public IP address!".encode())
+                client.sendall(
+                    encrypt_message(
+                        "Error retrieving public IP address!".encode(), sym_key
+                    )
+                )
             continue
 
         elif command == "!gethostname":
             try:
                 name_host = str(socket.gethostname())
-                client.sendall(name_host.encode())
+                client.sendall(encrypt_message(name_host.encode(), sym_key))
 
             except Exception as e:
                 print(e)
                 log_error(e)
-                client.sendall("Error getting hostname!".encode())
+                client.sendall(
+                    encrypt_message("Error getting hostname!".encode(), sym_key)
+                )
             continue
 
         elif command == "!getusername":
             try:
                 username_data = "!getusername " + str(getuser())
-                client.sendall(username_data.encode())
+                client.sendall(encrypt_message(username_data.encode(), sym_key))
 
             except Exception as e:
                 log_error(e)
-                client.sendall(str(e).encode())
+                client.sendall(encrypt_message(str(e).encode(), sym_key))
 
             continue
 
@@ -103,7 +122,7 @@ def start_client(server_ip, server_port, server_type="ipv4"):
 
             try:
                 username_data = "!getstats " + str(full_data)
-                client.sendall(username_data.encode())
+                client.sendall(encrypt_message(username_data.encode(), sym_key))
 
             except Exception as e:
                 print(e)
@@ -112,7 +131,9 @@ def start_client(server_ip, server_port, server_type="ipv4"):
             continue
 
         else:
-            client.sendall("[!] Invalid command!".encode())
+            client.sendall(
+                encrypt_message("[!] Unrecognised command!".encode(), sym_key)
+            )
 
     client.close()
     connected_to_server.clear()
@@ -129,27 +150,3 @@ def close_client():
 
     except Exception:
         pass
-
-
-# Reads the data about the IP, PORT and IP TYPE (IPv4/IPv6) of the server and connects to the server.
-if __name__ == "__main__":
-    file_path = join(get_appdata_path(), "connect-data.txt")
-    try:
-        with open(file_path, "rb") as f:
-            data = decrypt_file(f.read()).strip().splitlines()
-            SERVER_IP = str(data[0])
-            SERVER_PORT = int(data[1])
-            IP_TYPE = str(data[2].strip()).lower()
-
-    except Exception as fe:
-        log_error(fe)
-        print("[!] Unable to locate save data!\n")
-        SERVER_IP = input("Enter server IP (local): ")
-        SERVER_PORT = int(input("Enter server port: "))
-        IP_TYPE = input("Enter IP type (IPv4/IPv6): ").lower()
-
-        with open(file_path, "wb") as file:
-            write_data = f"{SERVER_IP}\n{SERVER_PORT}\n{IP_TYPE}"
-            file.write(encrypt_file(write_data))
-
-    start_client(SERVER_IP, SERVER_PORT, IP_TYPE.lower())
