@@ -116,10 +116,6 @@ def disconnect():
     global server
 
     for client, target_addr in zip(clients.values(), clients.keys()):
-        try:
-            client.send(encrypt_message("!disconnect", client_keys[target_addr]))
-        except Exception as e:
-            log_error(e)
         client.close()
 
     try:
@@ -442,7 +438,7 @@ def process_command(self, server_data, command, choice):
                     log_error(er)
 
             clients[target_addr].sendall(
-                encrypt_message("!sendjson".encode(), client_keys[clients[target_addr]])
+                encrypt_message("!sendjson".encode(), client_keys[target_addr])
             )
 
             if command.startswith("!sendjson"):
@@ -452,7 +448,7 @@ def process_command(self, server_data, command, choice):
                         clients[target_addr],
                         file_path_json,
                         END_MARKER,
-                        client_keys[clients[target_addr]],
+                        client_keys[target_addr],
                     ),
                 )
             else:
@@ -462,7 +458,7 @@ def process_command(self, server_data, command, choice):
                         clients[target_addr],
                         file_path_json,
                         END_MARKER,
-                        client_keys[clients[target_addr]],
+                        client_keys[target_addr],
                         lesson_id,
                     ),
                 )
@@ -484,7 +480,7 @@ def process_command(self, server_data, command, choice):
 
             clients[target_addr].sendall(
                 encrypt_message(
-                    "!updateboard".encode(), client_keys[clients[target_addr]]
+                    "!updateboard".encode(), client_keys[target_addr]
                 )
             )
 
@@ -494,7 +490,7 @@ def process_command(self, server_data, command, choice):
                     clients[target_addr],
                     file_path_json,
                     END_MARKER,
-                    client_keys[clients[target_addr]],
+                    client_keys[target_addr],
                 ),
             )
 
@@ -561,12 +557,12 @@ def process_command(self, server_data, command, choice):
         elif command.startswith("!getstats"):
             server_output.append("[*] Updating stats...")
             clients[target_addr].sendall(
-                encrypt_message(command.encode(), client_keys[clients[target_addr]])
+                encrypt_message(command.encode(), client_keys[target_addr])
             )
 
         else:
             clients[target_addr].sendall(
-                encrypt_message(command.encode(), client_keys[clients[target_addr]])
+                encrypt_message(command.encode(), client_keys[target_addr])
             )
 
     else:

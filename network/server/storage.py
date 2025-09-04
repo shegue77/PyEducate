@@ -103,6 +103,7 @@ def send_leaderboard(client, filename, end_marker, sym_key=b"") -> None:
     else:
         client.sendall(encrypt_message(data.encode(), sym_key))
 
+    print("sent")
     if end_marker in data.encode():
         print(
             f"[!] END MARKER FOUND IN {filename},"
