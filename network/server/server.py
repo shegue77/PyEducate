@@ -350,7 +350,12 @@ def process_command(self, server_data, command, choice):
                 if command.startswith("!sendjson"):
                     thread = Thread(
                         target=send_json,
-                        args=(client, file_path_json, END_MARKER, client_keys[target_addr]),
+                        args=(
+                            client,
+                            file_path_json,
+                            END_MARKER,
+                            client_keys[target_addr],
+                        ),
                     )
                 else:
                     thread = Thread(
@@ -395,11 +400,15 @@ def process_command(self, server_data, command, choice):
         elif command.startswith("!getstats"):
             server_output.append("[*] Updating stats...")
             for client, target_addr in zip(clients.values(), clients.keys()):
-                client.sendall(encrypt_message(command.encode(), client_keys[target_addr]))
+                client.sendall(
+                    encrypt_message(command.encode(), client_keys[target_addr])
+                )
 
         else:
             for client, target_addr in zip(clients.values(), clients.keys()):
-                client.sendall(encrypt_message(command.encode(), client_keys[target_addr]))
+                client.sendall(
+                    encrypt_message(command.encode(), client_keys[target_addr])
+                )
 
     elif 0 <= choice < len(clients):
         target_addr = list(clients.keys())[choice]
@@ -479,9 +488,7 @@ def process_command(self, server_data, command, choice):
                 log_error(er)
 
             clients[target_addr].sendall(
-                encrypt_message(
-                    "!updateboard".encode(), client_keys[target_addr]
-                )
+                encrypt_message("!updateboard".encode(), client_keys[target_addr])
             )
 
             thread = Thread(
