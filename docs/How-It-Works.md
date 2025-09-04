@@ -4,7 +4,7 @@ PyEducate follows a simple **Host-Server-Client** model that makes lesson delive
 
 1. **Lesson Creation (Host)**
 
-    - The **Host** uses the **Lesson Editor** to create lessons.  
+    - The **Host** uses the **Lesson Editor (merged into the server program)** to create lessons.  
     - Lessons are stored in a **structured JSON format**, making them easy to organize, edit, and share.  
     - Each lesson is **sorted by ID** for consistent ordering and quick retrieval.  
 

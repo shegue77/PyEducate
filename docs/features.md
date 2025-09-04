@@ -7,6 +7,7 @@
 - ✅ Graphical User Interface 💻
 - ✅ Auto-connect to server 🔄️
 - ✅ Leaderboards 🏆
+- ✅ Secure encryption methods
 
 ---
 
@@ -28,7 +29,7 @@
 - User-friendly interface
 - Easy access to lessons (stored locally)
 - Automatically connects to the server
-- Leaderboard with others connected to the same server
+- Leaderboard with others
 
 ---
 

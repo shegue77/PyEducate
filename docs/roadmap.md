@@ -1,6 +1,6 @@
 # 📌 PyEducate Roadmap
 
-Last updated: **26/08/2025**
+Last updated: **04/09/2025**
 
 ---
 
@@ -28,7 +28,7 @@ Expanding functionality, customization, and security.
 
 ### 🎨 User Experience
 - [ ] Customization options for the GUI (themes, layouts)
-- [ ] Offline app documentation
+- [x] Offline app documentation
 
 ### ⚙️ Functionality
 - [ ] Embed python interpreter into lessons
@@ -37,7 +37,6 @@ Expanding functionality, customization, and security.
 ### 🔐 Security Enhancements
 - [ ] Implement socket encryption for secure communication
 - [x] Add secure import/export of lesson data
-- [ ] Implement certificates (made by host) to verify lessons
 
 ---
 

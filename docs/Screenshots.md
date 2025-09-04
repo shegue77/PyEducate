@@ -8,6 +8,6 @@
 
 ---
 
-🎥 **[Watch Full Demo (Outdated)](https://youtu.be/-hf7UFrB3TM?si=KDYq3QeLKzNqcTJG)**
+🎥 **[Watch Full Demo (Outdated, will be updated soon)](https://youtu.be/-hf7UFrB3TM?si=KDYq3QeLKzNqcTJG)**
 
 ---

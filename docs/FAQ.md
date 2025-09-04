@@ -45,8 +45,8 @@ A:
 **Q: The client doesn’t connect to the server.**  
 A:  
 - Make sure the server is running.
-- **Restart** the application.
 - Verify the IP address and port are correctly configured.
+- **Restart** the application.
 - Verify you are **not** on mobile hotspot or a guest network.
 - Check that both are on the same local network.
 - Verify your firewall is correctly configured.
