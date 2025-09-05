@@ -1,6 +1,6 @@
 # PyEducate Documentation
 
-Welcome to the **official offline documentation** for PyEdycate.  
+Welcome to the **official offline documentation** for PyEducate.  
 Here you can find all commands, guides, and resources for using the app effectively.
 
 ---
