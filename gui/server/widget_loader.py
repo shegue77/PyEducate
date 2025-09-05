@@ -1,4 +1,5 @@
-from os.path import join
+from os.path import join, abspath
+import sys
 
 from PySide6.QtWidgets import (
     QStackedWidget,
@@ -205,11 +206,19 @@ def change_page(self, page, change_menu: bool = True, ui_name=None):
                         option.setText("")
 
 
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = abspath(".")
+    return join(base_path, relative_path)
+
+
 def view_docs():
     from webbrowser import open_new_tab
-    from pathlib import Path
 
-    filename = (Path.cwd() / "site" / "index.html").as_uri()
+    filename = str(resource_path(join("site", "index.html")))
+    print(filename)
     open_new_tab(filename)
 
 

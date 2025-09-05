@@ -1,5 +1,6 @@
 from json import JSONDecodeError
-from os.path import join, exists
+from os.path import join, exists, abspath
+import sys
 
 from utils.client.paths import get_appdata_path
 from utils.client.logger import log_error
@@ -216,11 +217,19 @@ def change_page(self, page, change_menu: bool = True, ui_name=None):
             init_leaderboard(self)
 
 
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = abspath(".")
+    return join(base_path, relative_path)
+
+
 def view_docs():
     from webbrowser import open_new_tab
-    from pathlib import Path
 
-    filename = (Path.cwd() / "site" / "index.html").as_uri()
+    filename = str(resource_path(join("site", "index.html")))
+    print(filename)
     open_new_tab(filename)
 
 
