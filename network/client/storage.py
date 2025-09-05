@@ -53,21 +53,22 @@ def download_file(client_r, mode, end_marker, sym_key):
     file_bytes = ""
 
     while True:
-        if file_bytes[-len(end_marker) :] == bytes(end_marker):
-            file_bytes = file_bytes[:-34]
+        if file_bytes[-len(end_marker) :].encode() == bytes(end_marker):
+            file_bytes = file_bytes[: -len(end_marker)]
             break
 
         print("Receiving data")
         data = decrypt_message(client_r.recv(1024), sym_key)
 
-        if file_bytes[-34:].encode() == bytes(end_marker):
-            file_bytes = file_bytes[:-34]
+        if file_bytes[-len(end_marker) :].encode() == bytes(end_marker):
+            file_bytes = file_bytes[: -len(end_marker)]
             print("Updated")
             break
 
         else:
             file_bytes += data
             print("Updated")
+    print("done")
 
     file.write(encrypt_file(file_bytes))
     file.close()
