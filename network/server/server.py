@@ -131,7 +131,7 @@ def start_server(host, port, self, server_type="ipv4"):
     global server
     global pub_key
     global priv_key
-    pub_key, priv_key = rsa.newkeys(1024)
+    pub_key, priv_key = rsa.newkeys(3072)
 
     server_output: QTextEdit = self.findChild(QTextEdit, "server_output")
     server_output.setText("")
