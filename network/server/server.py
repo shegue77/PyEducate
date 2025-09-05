@@ -24,7 +24,7 @@ from network.server.network import get_local_ip_address, validate_ip
 
 
 # -------------------------[ GLOBAL VARIABLES ]-------------------------
-app_version = "v2.0.1"
+app_version = "v2.2.0"
 clients: dict = {}  # Keeps track of clients
 client_keys: dict = {}  # Keeps track of client symmetric keys.
 server = None
@@ -59,7 +59,7 @@ def handle_client(client_socket, addr, self):
     server_output: QTextEdit = self.findChild(QTextEdit, "server_output")
 
     # Receive client public key (RSA)
-    public_client = rsa.PublicKey.load_pkcs1(client_socket.recv(1024))
+    public_client = rsa.PublicKey.load_pkcs1(client_socket.recv(3072))
 
     # Send symmetric AES Fernet key
     sym_key = generate_random_key()
@@ -67,9 +67,7 @@ def handle_client(client_socket, addr, self):
 
     # Map symmetric client to client's IP address
     client_keys[addr] = sym_key
-    print(f"Symmetric key (sent): {sym_key}")
     del sym_key
-    print(f"Dict key (stored): {client_keys[addr]}\nType: {type(client_keys[addr])}")
 
     print(f"[!] {addr[0]} connected.")
     server_output.append(f"[!] {addr[0]} connected.")
