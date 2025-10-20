@@ -33,7 +33,7 @@ def start_client(server_ip, server_port, server_type="ipv4"):
     global client
     global pub_key, priv_key, sym_key
 
-    pub_key, priv_key = rsa.newkeys(3072)
+    pub_key, priv_key = rsa.newkeys(2048)
     if server_type == "ipv6":
         client = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
     else:
@@ -46,7 +46,7 @@ def start_client(server_ip, server_port, server_type="ipv4"):
     client.send(pub_key.save_pkcs1("PEM"))
 
     # Recieve symmetric AES Fernet key
-    sym_key = rsa.decrypt(client.recv(3072), priv_key)
+    sym_key = rsa.decrypt(client.recv(2048), priv_key)
 
     while True:
         command = decrypt_message(client.recv(1024), sym_key).strip().lower()

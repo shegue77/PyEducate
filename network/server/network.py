@@ -66,6 +66,6 @@ def get_server_data():
         log_error(
             "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\makin\\AppData\\Roaming\\PyEducate\\server\\connect-data.txt'"
         )
-        return
+        return None
 
     return server_ip, server_port, ip_type

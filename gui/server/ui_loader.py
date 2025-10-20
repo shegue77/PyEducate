@@ -1,4 +1,5 @@
 import sys
+import traceback
 from os.path import abspath, join
 from PySide6.QtWidgets import (
     QMainWindow,
@@ -184,7 +185,9 @@ class MainWindow(QMainWindow):
                 server_ip, server_port, ip_type = get_server_data()
             except TypeError as te:
                 log_error(te)
+                print(traceback.format_exc())
                 return
+            print("Got data")
 
             start_server(server_ip, int(server_port), self, ip_type)
 

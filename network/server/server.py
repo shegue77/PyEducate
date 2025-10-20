@@ -59,7 +59,7 @@ def handle_client(client_socket, addr, self):
     server_output: QTextEdit = self.findChild(QTextEdit, "server_output")
 
     # Receive client public key (RSA)
-    public_client = rsa.PublicKey.load_pkcs1(client_socket.recv(3072))
+    public_client = rsa.PublicKey.load_pkcs1(client_socket.recv(2048))
 
     # Send symmetric AES Fernet key
     sym_key = generate_random_key()
@@ -131,7 +131,9 @@ def start_server(host, port, self, server_type="ipv4"):
     global server
     global pub_key
     global priv_key
-    pub_key, priv_key = rsa.newkeys(3072)
+    print("Gettings keys...")
+    pub_key, priv_key = rsa.newkeys(2048)
+    print("Got keys")
 
     server_output: QTextEdit = self.findChild(QTextEdit, "server_output")
     server_output.setText("")
