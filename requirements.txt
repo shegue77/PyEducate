@@ -2,6 +2,6 @@ pyside6==6.9.1
 requests==2.32.4
 schedule==1.2.2
 types-requests==2.31.0.4
-cryptography==45.0.6
+cryptography==46.0.5
 keyring==25.6.0
 rsa==4.9.1
